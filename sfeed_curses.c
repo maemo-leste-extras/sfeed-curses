@@ -1128,9 +1128,11 @@ draw(void)
 	}
 
 	/* if item selection text changed, update the status text */
-	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
+	if (panes[PaneItems].nrows &&
+	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
-		statusbar_update(&statusbar, item->url);
+		if (item->url)
+			statusbar_update(&statusbar, item->url);
 	} else {
 		statusbar_update(&statusbar, "");
 	}
