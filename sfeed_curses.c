@@ -881,7 +881,7 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 				line[--linelen] = '\0';
 
 			if (linetoitem(line, item) == -1)
-				errx(1, "invalid line");
+				continue;
 
 			(*nitems)++;
 		}
