@@ -1375,11 +1375,11 @@ main(int argc, char *argv[])
 			}
 			continue;
 keyup:
-		case 'j':
+		case 'k':
 			pane_scrolln(&panes[selpane], -1);
 			break;
 keydown:
-		case 'k':
+		case 'j':
 			pane_scrolln(&panes[selpane], +1);
 			break;
 keyleft:
