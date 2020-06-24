@@ -468,13 +468,18 @@ plumb(char *url)
 struct row *
 pane_row_get(struct pane *p, off_t pos)
 {
+	if (pos >= p->nrows)
+		return NULL;
 	return p->rows + pos;
 }
 
 void
 pane_row_draw(struct pane *p, off_t pos)
 {
+	struct row *row;
 	int r = 0, y;
+
+	row = pane_row_get(p, pos);
 
 	y = p->y + (pos % p->height); /* relative position on screen */
 	putp(tparm(cursor_address, y, p->x, 0, 0, 0, 0, 0, 0, 0));
@@ -485,11 +490,14 @@ pane_row_draw(struct pane *p, off_t pos)
 		else
 			putp("\x1b[2;7m"); /* gray, standout */
 		r = 1;
-	} else if (p->nrows && pos < p->nrows && p->rows[pos].bold) {
+	} else if (p->nrows && pos < p->nrows && row && row->bold) {
 		putp("\x1b[1m"); /* bold */
 		r = 1;
 	}
-	printpad(p->rows[pos].text, p->width);
+	if (row)
+		printpad(row->text, p->width);
+	else
+		printpad("", p->width);
 	if (r)
 		putp("\x1b[0m");
 }
@@ -937,6 +945,9 @@ feed_load(struct feed *f, FILE *fp)
 	for (i = 0; i < nitems; i++)
 		f->totalnew += items[i].isnew;
 
+	p->pos = 0;
+	p->selected = 0;
+	p->nrows = nitems;
 	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
 	for (i = 0; i < nitems; i++) {
 		row = pane_row_get(p, i);
@@ -944,9 +955,7 @@ feed_load(struct feed *f, FILE *fp)
 		row->bold = items[i].isnew;
 		row->data = &items[i];
 	}
-	p->nrows = nitems;
-	pane_setpos(p, 0);
-	p->selected = 0;
+	p->dirty = 1;
 }
 
 void
