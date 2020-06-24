@@ -172,7 +172,7 @@ void *
 erealloc(void *ptr, size_t size)
 {
 	void *p;
-	
+
 	if (!(p = realloc(ptr, size)))
 		err(1, "realloc");
 	return p;
@@ -1141,8 +1141,7 @@ draw(void)
 	if (panes[PaneItems].nrows &&
 	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
-		if (item->url)
-			statusbar_update(&statusbar, item->url);
+		statusbar_update(&statusbar, item->url);
 	} else {
 		statusbar_update(&statusbar, "");
 	}
