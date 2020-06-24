@@ -29,6 +29,8 @@ ${BIN}: ${@:=.o}
 
 OBJ = ${SRC:.c=.o}
 
+${OBJ}:
+
 .o:
 	${CC} ${SFEED_LDFLAGS} -o $@ $<
 
