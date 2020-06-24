@@ -498,7 +498,7 @@ pane_row_draw(struct pane *p, off_t pos)
 	if (row)
 		printpad(row->text, p->width);
 	else
-		printpad("", p->width);
+		printf("%-*.*s", p->width, p->width, "");
 	if (r)
 		putp("\x1b[0m");
 }
@@ -584,26 +584,15 @@ pane_setfocus(struct pane *p, int on)
 void
 pane_draw(struct pane *p)
 {
-	off_t pos, start, end;
-	int y, h;
+	off_t pos, y;
 
 	if (p->hidden || !p->dirty)
 		return;
 
-	h = p->pos % p->height;
-	start = p->pos - h;
-	end = p->pos - h + p->height;
-	if (end >= p->nrows)
-		end = p->nrows;
+	pos = p->pos - (p->pos % p->height);
+	for (y = 0; y < p->height; y++)
+		pane_row_draw(p, y + pos);
 
-	for (pos = start, y = 0; pos < end && y < p->height; pos++, y++)
-		pane_row_draw(p, pos);
-
-	/* rest: empty space */
-	for (; y < p->height; y++) {
-		putp(tparm(cursor_address, p->y + y, p->x, 0, 0, 0, 0, 0, 0, 0));
-		printf("%-*.*s", p->width, p->width, "");
-	}
 	p->dirty = 0;
 }
 
@@ -1001,6 +990,7 @@ feed_load(struct feed *f, FILE *fp)
 		row->data = &items[i];
 	}
 	p->dirty = 1;
+	scrollbars[PaneItems].dirty = 1;
 }
 
 void
@@ -1252,8 +1242,6 @@ mousereport(int button, int release, int x, int y)
 				row = pane_row_get(&panes[PaneFeeds], pos);
 				f = (struct feed *)row->data;
 				feed_loadfile(f, f->path);
-				panes[PaneItems].dirty = 1;
-				scrollbars[PaneItems].dirty = 1;
 			} else if (i == PaneItems) {
 				/* clicking the same highlighted row */
 				if (p->pos == pos && !changedpane) {
@@ -1501,9 +1489,6 @@ nextpage:
 				p->selected = p->pos;
 				f = (struct feed *)p->rows[p->pos].data;
 				feed_loadfile(f, f->path);
-				pane_setpos(&panes[PaneItems], 0);
-				panes[PaneItems].dirty = 1;
-				scrollbars[PaneItems].dirty = 1;
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
