@@ -1,0 +1,122 @@
+.Dd June 20, 2020
+.Dt SFEED_CURSES 1
+.Os
+.Sh NAME
+.Nm sfeed_curses
+.Nd curses UI for viewing items
+.Sh SYNOPSIS
+.Nm
+.Op Ar file...
+.Sh DESCRIPTION
+.Nm
+formats feed data (TSV) from
+.Xr sfeed 1
+from stdin or
+.Ar file
+into a UI.
+If one or more
+.Ar file
+are specified, the basename of the
+.Ar file
+is used as the feed name in the output.
+If no
+.Ar file
+parameters are specified and so the data is read from stdin the feed name
+is empty.
+.Pp
+Items with a timestamp from the last day compared to the system time at the
+time of formatting are marked as new.
+.Pp
+.Nm
+aligns the output.
+Make sure the environment variable
+.Ev LC_CTYPE
+is set to a UTF-8 locale, so it can determine the proper column-width
+per rune, using
+.Xr mbtowc 3
+and
+.Xr wcwidth 3 .
+.Sh KEYBINDS
+.Bl -tag -width Ds
+.It j, arrow up
+Select previous item.
+.It k, arrow down
+Select next item.
+.It h, arrow left
+Focus pane to the left.
+.It l, arrow right
+Focus pane to the right.
+.It TAB
+Cycle focused pane (feeds, items).
+.It g
+Go to first item.
+.It G
+Go to last item.
+.It page up, ^B
+Scroll 1 page up.
+.It page down, ^F, SPACE
+Scroll 1 page down.
+.It /
+Prompt for new search and search forward.
+.It ?
+Prompt for new search and search backward.
+.It n
+Search forward with the previous input search term.
+.It N
+Search backward with the previous input search term.
+.It r, ^L
+Redraw screen.
+.It R
+Reload all feed files as specified on startup when not read from stdin.
+.It m
+Toggle mouse mode.
+.It s
+Toggle showing the feeds pane sidebar.
+.It t
+Toggle showing only feeds with new items in the sidebar.
+.It a, e, @
+Plumb url of attachment/enclosure.
+The url is passed as a parameter to the program specified in
+.Ev SFEED_PLUMBER .
+.It o, newline
+Feeds pane: load feed and its items.
+Items pane: plumb current item url.
+The url is passed as a parameter to the program specified in
+.Ev SFEED_PLUMBER .
+.It p, |
+Pipe TAB-Separated Value line to a program.
+The line is piped to the program specified in
+.Ev SFEED_PIPER .
+.It q, EOF
+quit
+.El
+.Sh MOUSE ACTIONS
+When mouse-mode is enabled the below actions are available.
+.Bl -tag -width Ds
+.It left-click
+Feeds pane: load feed and it's items.
+Items pane: select item, when already selected plumb it.
+.It right-click
+Items pane: plumb clicked item.
+.It scroll up
+Scroll 1 page up.
+.It scroll down
+Scroll 1 page down.
+.El
+.Sh ENVIRONMENT VARIABLES
+.Bl -tag -width Ds
+.It Ev SFEED_PIPER
+A program where the TAB-Separated Value line is piped to.
+By default this is "less".
+.It Ev SFEED_PLUMBER
+A program that received the url or enclosure url as a parameter.
+By default this is "xdg-open".
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr sfeed 1 ,
+.Xr sfeed_html 1 ,
+.Xr sfeed 5
+.Sh AUTHORS
+.An Hiltjo Posthuma Aq Mt hiltjo@codemadness.org

@@ -1,0 +1,9 @@
+sfeed curses UI
+
+
+Dependencies
+------------
+
+* C compiler
+* curses
+* A terminal (emulator) supporting UTF-8 and more modern capabilities.
