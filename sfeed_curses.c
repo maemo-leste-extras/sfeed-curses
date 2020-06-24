@@ -169,6 +169,16 @@ errx(int code, const char *fmt, ...)
 }
 
 void *
+erealloc(void *ptr, size_t size)
+{
+	void *p;
+	
+	if (!(p = realloc(ptr, size)))
+		err(1, "realloc");
+	return p;
+}
+
+void *
 ecalloc(size_t nmemb, size_t size)
 {
 	void *p;
@@ -859,11 +869,11 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 		cap = 0;
 	} else { /* `want` is also a hint of amount to allocate. */
 		cap = (size_t)want;
-		*items = realloc(*items, cap * sizeof(struct item));
+		*items = erealloc(*items, cap * sizeof(struct item));
 	}
 	for (i = 0; want == -1 || i < want; i++) {
 		if (i + 1 >= cap)
-			*items = realloc(*items, ++cap * sizeof(struct item));
+			*items = erealloc(*items, ++cap * sizeof(struct item));
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
 			item = (*items) + i;
 			offset += linelen;
