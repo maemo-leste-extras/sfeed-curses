@@ -122,6 +122,7 @@ struct item {
 	char *url;
 	char *enclosure;
 	char *line;
+//	size_t offset; /* line offset in file */
 	int isnew;
 };
 
@@ -884,6 +885,7 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 			*items = erealloc(*items, ++cap * sizeof(struct item));
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
 			item = (*items) + i;
+//			item->offset = offset;
 			offset += linelen;
 
 			if (line[linelen - 1] == '\n')
@@ -905,6 +907,49 @@ err:
 	free(line);
 	return ret;
 }
+
+#if 0
+int
+feed_getitemsfile(struct item **items, size_t *nitems, ssize_t want,
+	const char *path, size_t offset)
+{
+	FILE *fp = NULL;
+	int ret = -1;
+
+	if (!(fp = fopen(path, "r")))
+		goto err;
+
+	ret = feed_getitems(items, nitems, want, fp, offset);
+
+err:
+	if (fp)
+		fclose(fp);
+
+	return ret;
+}
+
+char *
+feed_getline(const char *path, size_t offset)
+{
+	FILE *fp;
+	char *line = NULL;
+	size_t linesize = 0;
+	ssize_t linelen;
+
+	if (!(fp = fopen(path, "r")))
+		err(1, "fopen: %s", path);
+	if (fseek(fp, offset, SEEK_SET))
+		err(1, "fseek: %s", path);
+
+	if ((linelen = getline(&line, &linesize, fp)) > 0) {
+		if (line[linelen - 1] == '\n')
+			line[--linelen] = '\0';
+	}
+	fclose(fp);
+
+	return line;
+}
+#endif
 
 void
 feed_load(struct feed *f, FILE *fp)
