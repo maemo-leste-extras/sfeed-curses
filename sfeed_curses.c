@@ -880,8 +880,10 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 			if (line[linelen - 1] == '\n')
 				line[--linelen] = '\0';
 
-			if (linetoitem(line, item) == -1)
+			if (linetoitem(line, item) == -1) {
+				i--;
 				continue;
+			}
 
 			(*nitems)++;
 		}
