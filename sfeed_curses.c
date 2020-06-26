@@ -1039,6 +1039,9 @@ loadfiles(int argc, char *argv[])
 	FILE *fp;
 	size_t i;
 	char *name;
+	int istty;
+
+	istty = isatty(ttyfd);
 
 	feeds = ecalloc(argc, sizeof(struct feed));
 
@@ -1053,14 +1056,6 @@ loadfiles(int argc, char *argv[])
 		if (!(fp = fdopen(ttyfd, "rb")))
 			err(1, "fdopen");
 		feed_load(&feeds[0], fp);
-
-		/* close and re-attach to stdin */
-		close(0); // TODO: fclose ?
-		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
-			err(1, "open: /dev/tty");
-		if (dup2(ttyfd, 0) == -1)
-			err(1, "dup2: /dev/tty");
-
 		nfeeds = 1;
 		totalnew += feeds[0].totalnew;
 		totalcount += feeds[0].total;
@@ -1083,6 +1078,14 @@ loadfiles(int argc, char *argv[])
 		nfeeds = argc - 1;
 		/* load first items, because of first selection. */
 		feed_loadfile(&feeds[0], feeds[0].path);
+	}
+
+	if (!istty) {
+		close(ttyfd);
+		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
+			err(1, "open: /dev/tty");
+		if (dup2(ttyfd, 0) == -1)
+			err(1, "dup2: /dev/tty");
 	}
 }
 
