@@ -951,7 +951,6 @@ feed_load(struct feed *f, FILE *fp)
 	struct row *row;
 	ssize_t want;
 	size_t i;
-	int ret;
 
 	for (i = 0; i < nitems; i++) {
 		free(items[i].title);
@@ -972,8 +971,7 @@ feed_load(struct feed *f, FILE *fp)
 
 	want = -1; /* all */
 
-	ret = feed_getitems(&items, &nitems, want, fp, 0);
-	if (ret == -1)
+	if (feed_getitems(&items, &nitems, want, fp, 0) == -1)
 		err(1, "%s: %s", __func__, f->path);
 
 	f->totalnew = 0;
@@ -1049,13 +1047,9 @@ loadfiles(int argc, char *argv[])
 	/* 1 day is old news */
 	comparetime -= 86400;
 
-	if ((devnullfd = open("/dev/null", O_WRONLY)) < 0)
-		err(1, "open: /dev/null");
-
 	totalnew = totalcount = 0;
 	if (argc == 1) {
 		feeds[0].name = "stdin";
-
 		if (!(fp = fdopen(ttyfd, "rb")))
 			err(1, "fdopen");
 		feed_load(&feeds[0], fp);
@@ -1304,6 +1298,9 @@ main(int argc, char *argv[])
 		panes[PaneFeeds].hidden = 1;
 		selpane = PaneItems;
 	}
+
+	if ((devnullfd = open("/dev/null", O_WRONLY)) < 0)
+		err(1, "open: /dev/null");
 
 	updatetitle();
 	updatesidebar(onlynew);
