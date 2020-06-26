@@ -1436,7 +1436,6 @@ nextpage:
 						break;
 					}
 				}
-
 			}
 			break;
 		case 12: /* ^L */
@@ -1471,7 +1470,6 @@ nextpage:
 			fflush(stdout);
 			break;
 		case 's': /* toggle sidebar */
-			// TODO: mark as dirty.
 			panes[PaneFeeds].hidden = !panes[PaneFeeds].hidden;
 			if (selpane == PaneFeeds && panes[PaneFeeds].hidden)
 				selpane = PaneItems;

@@ -3,7 +3,7 @@
 #
 # Dependencies:
 # - awk, sh, etc.
-# - lynx or webdump or HTML converting to plain-text.
+# - lynx or webdump for converting HTML to plain-text.
 
 # content()
 content() {
