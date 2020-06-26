@@ -1115,8 +1115,6 @@ updatesidebar(int onlynew)
 
 	feedw = 0;
 	for (i = 0; i < nfeeds; i++) {
-		if (onlynew && feeds[i].totalnew == 0)
-			continue;
 		snprintf(bufw, sizeof(bufw), "%s (%ld/%ld)",
 		               feeds[i].name,  feeds[i].totalnew, feeds[i].total);
 		len = colw(bufw);
