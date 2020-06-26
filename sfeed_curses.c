@@ -859,8 +859,8 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 
 	*items = NULL;
 	*nitems = 0;
-	if (fseek(fp, offset, SEEK_SET))
-		goto err;
+//	if (fseek(fp, offset, SEEK_SET))
+//		goto err;
 
 	/* if loading all items, set cap to 0, expand later */
 	if (want == -1) {
