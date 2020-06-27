@@ -1183,8 +1183,10 @@ mousereport(int button, int release, int x, int y)
 				break;
 			if (i == PaneFeeds) {
 				pane_setpos(p, pos);
-				feeds_set(&feeds[pos]);
-				feed_load(curfeed, curfeed->fp);
+				row = pane_row_get(p, pos);
+				f = (struct feed *)row->data;
+				feeds_set(f);
+				feed_load(f, f->fp);
 			} else if (i == PaneItems) {
 				/* clicking the same highlighted row */
 				if (p->pos == pos && !changedpane) {
@@ -1552,7 +1554,8 @@ nextpage:
 		case 't': /* toggle showing only new in sidebar */
 			onlynew = !onlynew;
 			pane_setpos(&panes[PaneFeeds], 0);
-			feeds_set(&feeds[0]);
+			row = pane_row_get(&panes[PaneFeeds], 0);
+			feeds_set((struct feed *)row->data);
 			updatesidebar(onlynew);
 			updategeom();
 			break;
@@ -1560,8 +1563,10 @@ nextpage:
 		case '\n':
 			if (selpane == PaneFeeds && panes[PaneFeeds].nrows) {
 				p = &panes[selpane];
-				feeds_set(&feeds[p->pos]);
-				feed_load(curfeed, curfeed->fp);
+				row = pane_row_get(p, p->pos);
+				f = (struct feed *)row->data;
+				feeds_set(f);
+				feed_load(f, f->fp);
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
