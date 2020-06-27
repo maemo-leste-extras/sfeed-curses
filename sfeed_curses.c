@@ -75,8 +75,6 @@ struct statusbar {
 
 #undef err
 void err(int, const char *, ...);
-#undef errx
-void errx(int, const char *, ...);
 
 void alldirty(void);
 void cleanup(void);
@@ -122,7 +120,6 @@ struct item {
 	char *url;
 	char *enclosure;
 	char *line;
-//	size_t offset; /* line offset in file */
 	int isnew;
 };
 
@@ -149,22 +146,6 @@ err(int code, const char *fmt, ...)
 	fputs(": ", stderr);
 	errno = saved_errno;
 	perror(NULL);
-
-	_exit(code);
-}
-
-void
-errx(int code, const char *fmt, ...)
-{
-	va_list ap;
-
-	cleanup();
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-
-	fputc('\n', stderr);
 
 	_exit(code);
 }
@@ -858,8 +839,6 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 
 	*items = NULL;
 	*nitems = 0;
-//	if (fseek(fp, offset, SEEK_SET))
-//		goto err;
 
 	/* if loading all items, set cap to 0, expand later */
 	if (want == -1) {
@@ -873,8 +852,6 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 			*items = erealloc(*items, ++cap * sizeof(struct item));
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
 			item = (*items) + i;
-//			item->offset = offset;
-			offset += linelen;
 
 			if (line[linelen - 1] == '\n')
 				line[--linelen] = '\0';
@@ -897,49 +874,6 @@ err:
 	free(line);
 	return ret;
 }
-
-#if 0
-int
-feed_getitemsfile(struct item **items, size_t *nitems, ssize_t want,
-	const char *path, size_t offset)
-{
-	FILE *fp = NULL;
-	int ret = -1;
-
-	if (!(fp = fopen(path, "r")))
-		goto err;
-
-	ret = feed_getitems(items, nitems, want, fp, offset);
-
-err:
-	if (fp)
-		fclose(fp);
-
-	return ret;
-}
-
-char *
-feed_getline(const char *path, size_t offset)
-{
-	FILE *fp;
-	char *line = NULL;
-	size_t linesize = 0;
-	ssize_t linelen;
-
-	if (!(fp = fopen(path, "r")))
-		err(1, "fopen: %s", path);
-	if (fseek(fp, offset, SEEK_SET))
-		err(1, "fseek: %s", path);
-
-	if ((linelen = getline(&line, &linesize, fp)) > 0) {
-		if (line[linelen - 1] == '\n')
-			line[--linelen] = '\0';
-	}
-	fclose(fp);
-
-	return line;
-}
-#endif
 
 void
 feed_load(struct feed *f, FILE *fp)
