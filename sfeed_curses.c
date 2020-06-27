@@ -486,13 +486,12 @@ pane_row_draw(struct pane *p, off_t pos)
 	putp(tparm(cursor_address, y, p->x, 0, 0, 0, 0, 0, 0, 0));
 
 	if (pos == p->pos) {
-		if (p->focused)
-			putp("\x1b[7m"); /* standout */
-		else
-			putp("\x1b[2;7m"); /* gray, standout */
+		putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		if (!p->focused)
+			putp(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		r = 1;
 	} else if (p->nrows && pos < p->nrows && row && row->bold) {
-		putp("\x1b[1m"); /* bold */
+		putp(tparm(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		r = 1;
 	}
 	if (row)
@@ -720,7 +719,7 @@ scrollbar_draw(struct scrollbar *s)
 		return;
 
 	if (!s->focused)
-		putp("\x1b[2m");
+		putp(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	for (y = 0; y < s->size; y++) {
 		putp(tparm(cursor_address, s->y + y, s->x, 0, 0, 0, 0, 0, 0, 0));
 		if (y >= s->tickpos && y < s->tickpos + s->ticksize) {
