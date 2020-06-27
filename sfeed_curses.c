@@ -986,6 +986,15 @@ feed_count(struct feed *f, FILE *fp)
 	free(line);
 }
 
+void
+feed_setenv(struct feed *f)
+{
+	if (f && f->path)
+		setenv("SFEED_FEED_PATH", f->path, 1);
+	else
+		unsetenv("SFEED_FEED_PATH");
+}
+
 /* change feed, have one file open, reopen file if needed */
 void
 feeds_set(struct feed *f)
@@ -1001,6 +1010,8 @@ feeds_set(struct feed *f)
 		if (!f->fp && !(f->fp = fopen(f->path, "rb")))
 			err(1, "fopen: %s", f->path);
 	}
+
+	feed_setenv(f);
 
 	curfeed = f;
 }
