@@ -1554,8 +1554,6 @@ nextpage:
 		case 't': /* toggle showing only new in sidebar */
 			onlynew = !onlynew;
 			pane_setpos(&panes[PaneFeeds], 0);
-			row = pane_row_get(&panes[PaneFeeds], 0);
-			feeds_set((struct feed *)row->data);
 			updatesidebar(onlynew);
 			updategeom();
 			break;
