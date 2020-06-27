@@ -56,7 +56,7 @@ struct pane {
 	int y; /* absolute y position of the window on the screen */
 	int width; /* absolute width of the window */
 	int height; /* absolute height of the window */
-	int pos; /* focused row position */
+	off_t pos; /* focused row position */
 	struct row *rows;
 	size_t nrows; /* total amount of rows */
 	int focused; /* has focus or not */
@@ -94,7 +94,7 @@ static struct statusbar statusbar;
 static struct pane panes[PaneLast];
 static struct scrollbar scrollbars[PaneLast]; /* each pane has a scrollbar */
 static struct win win;
-static int selpane;
+static size_t selpane;
 
 static struct termios tsave; /* terminal state at startup */
 static struct termios tcur;
@@ -139,7 +139,7 @@ static int onlynew = 0;
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
    feed is changed while having the UI open (and offsets are changed). */
-static int lazyload = 0;
+static int lazyload = 1;
 
 static char *plumber = "xdg-open";
 static char *piper = "less";
@@ -567,7 +567,7 @@ pane_setendpos(struct pane *p)
 }
 
 void
-pane_scrollpage(struct pane *p, size_t pages)
+pane_scrollpage(struct pane *p, int pages)
 {
 	off_t pos;
 
@@ -938,7 +938,7 @@ feed_load(struct feed *f, FILE *fp)
 	p->rows = NULL;
 	p->nrows = 0;
 
-	if (feed_getitems(f, f->fp, &items, &nitems) == -1)
+	if (feed_getitems(f, fp, &items, &nitems) == -1)
 		err(1, "%s: %s", __func__, f->path);
 
 	f->totalnew = 0;
@@ -1020,7 +1020,6 @@ void
 feeds_load(struct feed *feeds, size_t nfeeds)
 {
 	struct feed *f;
-	FILE *fp;
 	size_t i;
 
 	if ((comparetime = time(NULL)) == -1)
@@ -1069,8 +1068,8 @@ updatesidebar(int onlynew)
 	struct pane *p;
 	struct row *row;
 	struct feed *feed;
-	size_t i, len;
-	int width;
+	size_t i;
+	int len, width;
 
 	p = &panes[PaneFeeds];
 
@@ -1241,12 +1240,12 @@ feed_row_format(struct pane *p, struct row *row)
 	feed = (struct feed *)row->data;
 
 	if (p->width) {
-		len = snprintf(counts, sizeof(counts), "(%ld/%ld)",
+		len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
 		               feed->totalnew, feed->total);
 		utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ');
 		snprintf(text, sizeof(text), "%s%s", bufw, counts);
 	} else {
-		snprintf(text, sizeof(text), "%s (%ld/%ld)",
+		snprintf(text, sizeof(text), "%s (%lu/%lu)",
 		         feed->name, feed->totalnew, feed->total);
 	}
 
@@ -1266,7 +1265,7 @@ feed_row_match(struct pane *p, struct row *row, const char *s)
 struct row *
 item_row_get(struct pane *p, off_t pos)
 {
-	struct row *feedrow, *itemrow;
+	struct row *itemrow;
 	struct item *item;
 	struct feed *f;
 	char *dupline, *line = NULL;
@@ -1315,16 +1314,6 @@ item_row_format(struct pane *p, struct row *row)
 	         item->tm.tm_hour, item->tm.tm_min, item->fields[FieldTitle]);
 
 	return text;
-}
-
-int
-item_row_match(struct pane *p, struct row *row, const char *s)
-{
-	struct item *item;
-
-	item = (struct item *)row->data;
-
-	return (strcasestr(item->fields[FieldTitle], s) != NULL);
 }
 
 int
@@ -1545,7 +1534,6 @@ nextpage:
 		case 'e': /* enclosure */
 		case '@':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneFeeds];
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
@@ -1588,7 +1576,6 @@ nextpage:
 		case 'p':
 		case '|':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneFeeds];
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
