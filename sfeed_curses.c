@@ -1494,7 +1494,8 @@ nextpage:
 				plumb(item->url);
 			}
 			break;
-		case 'p': /* items: pipe TSV line to program */
+		case 'c': /* items: pipe TSV line to program */
+		case 'p':
 		case '|':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneFeeds];
