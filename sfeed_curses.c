@@ -6,6 +6,7 @@
 #include <curses.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <locale.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -58,10 +59,13 @@ struct pane {
 	int pos; /* focused row position */
 	struct row *rows;
 	size_t nrows; /* total amount of rows */
-	off_t selected; /* row selected */ // TODO: factor out.
 	int focused; /* has focus or not */
 	int hidden; /* is visible or not */
 	int dirty; /* needs draw update */
+
+	struct row *(*row_get)(struct pane *, off_t pos);
+	char *(*row_format)(struct pane *, struct row *);
+	int (*row_match)(struct pane *, struct row *, const char *);
 };
 
 struct statusbar {
@@ -104,28 +108,38 @@ static int needcleanup;
 /* feed info */
 struct feed {
 	char         *name;     /* feed name */
-	char         *path;     /* path to feed */
+	char         *path;     /* path to feed or NULL from stdin */
 	unsigned long totalnew; /* amount of new items per feed */
 	unsigned long total;    /* total items */
+	FILE *fp;               /* file pointer */
 };
 
 static struct feed *feeds;
+static struct feed *curfeed;
 static size_t nfeeds; /* amount of feeds */
 
 static time_t comparetime;
 static unsigned long totalnew, totalcount;
 
 struct item {
-	char *title;
-	char *url;
-	char *enclosure;
-	char *line;
+	char *fields[FieldLast];
+	char *line; /* allocated split line */
+	time_t timestamp;
+	struct tm tm;
 	int isnew;
+	off_t offset; /* line offset in file */
 };
 
 /* config */
-int usemouse = 1; /* use xterm mouse tracking */
-int onlynew = 0; /* show only new in sidebar (default = 0 = all) */
+
+/* use xterm mouse tracking */
+static int usemouse = 1;
+/* show only new in sidebar (default = 0 = all) */
+static int onlynew = 0;
+/* Allow to lazyload items when a file is specified? This saves memory but
+   increases some latency when seeking items. It also causes issues if the
+   feed is changed while having the UI open (and offsets are changed). */
+static int lazyload = 0;
 
 static char *plumber = "xdg-open";
 static char *piper = "less";
@@ -241,7 +255,7 @@ strtotime(const char *s, time_t *t)
 	return 0;
 }
 
-int
+size_t
 colw(const char *s)
 {
 	wchar_t wc;
@@ -308,7 +322,7 @@ utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 void
 printpad(const char *s, int width)
 {
-	char buf[256]; // TODO: size
+	char buf[1024];
 	utf8pad(buf, sizeof(buf), s, width, ' ');
 	fputs(buf, stdout);
 }
@@ -402,10 +416,10 @@ init(void)
 }
 
 void
-pipeitem(const char *line)
+pipeitem(struct item *item)
 {
 	FILE *fp;
-	int pid, wpid;
+	int i, pid, wpid;
 
 	cleanup();
 	switch ((pid = fork())) {
@@ -419,7 +433,11 @@ pipeitem(const char *line)
 			perror(NULL);
 			_exit(1);
 		}
-		fputs(line, fp);
+		for (i = 0; i < FieldLast; i++) {
+			if (i)
+				fputc('\t', fp);
+			fputs(item->fields[i], fp);
+		}
 		fputc('\n', fp);
 		exit(pclose(fp));
 		break;
@@ -452,20 +470,43 @@ pane_row_get(struct pane *p, off_t pos)
 {
 	if (pos >= p->nrows)
 		return NULL;
-	return p->rows + pos;
+
+	if (p->row_get)
+		return p->row_get(p, pos);
+	else
+		return p->rows + pos;
+}
+
+char *
+pane_row_text(struct pane *p, struct row *row)
+{
+	/* custom formatter */
+	if (p->row_format)
+		return p->row_format(p, row);
+	else
+		return row->text;
+}
+
+int
+pane_row_match(struct pane *p, struct row *row, const char *s)
+{
+	if (p->row_match)
+		return p->row_match(p, row, s);
+	return (strcasestr(pane_row_text(p, row), s) != NULL);
 }
 
 void
 pane_row_draw(struct pane *p, off_t pos)
 {
 	struct row *row;
-	int r = 0, y;
+	int r, y;
 
 	row = pane_row_get(p, pos);
 
 	y = p->y + (pos % p->height); /* relative position on screen */
 	putp(tparm(cursor_address, y, p->x, 0, 0, 0, 0, 0, 0, 0));
 
+	r = 0;
 	if (pos == p->pos) {
 		putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		if (!p->focused)
@@ -476,7 +517,7 @@ pane_row_draw(struct pane *p, off_t pos)
 		r = 1;
 	}
 	if (row)
-		printpad(row->text, p->width);
+		printpad(pane_row_text(p, row), p->width);
 	else
 		printf("%-*.*s", p->width, p->width, "");
 	if (r)
@@ -723,7 +764,7 @@ uiprompt(int x, int y, char *fmt, ...)
 	char *input = NULL;
 	size_t n;
 	ssize_t r;
-	char buf[256]; // TODO
+	char buf[32];
 	struct termios tset;
 
 	va_start(ap, fmt);
@@ -741,9 +782,9 @@ uiprompt(int x, int y, char *fmt, ...)
 	fputs(buf, stdout);
 	putp(tparm(exit_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
+	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	putp(tparm(cursor_visible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	putp(tparm(cursor_address, y, x + colw(buf), 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	fflush(stdout);
 
 	n = 0;
@@ -789,52 +830,40 @@ statusbar_update(struct statusbar *s, const char *text)
 	s->dirty = 1;
 }
 
+/* line to item, modifies and splits line in-place */
 int
 linetoitem(char *line, struct item *item)
 {
 	char *fields[FieldLast];
-	char title[1024]; // TODO
-	struct tm *tm;
+	struct tm tm;
 	time_t parsedtime;
-
-	item->line = estrdup(line);
 
 	parseline(line, fields);
 
 	parsedtime = 0;
-	if (strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
-		free(item->line);
-		item->line = NULL;
+	if (strtotime(fields[FieldUnixTimestamp], &parsedtime))
 		return -1;
-	}
-	if (!(tm = localtime(&parsedtime))) {
-		free(item->line);
-		item->line = NULL;
+	if (!localtime_r(&parsedtime, &tm))
 		return -1;
-	}
 
-	// TODO: asnprintf?
-	snprintf(title, sizeof(title), "%c %04d-%02d-%02d %02d:%02d %s",
-	         fields[FieldEnclosure][0] ? '@' : ' ',
-	         tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-	         tm->tm_hour, tm->tm_min, fields[FieldTitle]);
-
-	item->title = estrdup(title);
-	item->url = estrdup(fields[FieldLink]);
-	item->enclosure = estrdup(fields[FieldEnclosure]);
+	item->line = line;
 	item->isnew = (parsedtime >= comparetime);
+	item->timestamp = parsedtime;
+	memcpy(&(item->tm), &tm, sizeof(tm));
+	memcpy(item->fields, fields, sizeof(fields));
 
 	return 0;
 }
 
 int
-feed_getitems(struct item **items, size_t *nitems, ssize_t want,
-	FILE *fp, size_t offset)
+feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems,
+              ssize_t want)
 {
 	struct item *item;
-	char *line = NULL;
+	char *dupline, *line = NULL;
 	size_t cap, linesize = 0;
 	ssize_t i, linelen;
+	off_t offset;
 	int ret = -1;
 
 	*items = NULL;
@@ -847,18 +876,40 @@ feed_getitems(struct item **items, size_t *nitems, ssize_t want,
 		cap = (size_t)want;
 		*items = erealloc(*items, cap * sizeof(struct item));
 	}
+
+	offset = 0;
 	for (i = 0; want == -1 || i < want; i++) {
-		if (i + 1 >= cap)
-			*items = erealloc(*items, ++cap * sizeof(struct item));
+		if (i + 1 >= cap) {
+			if (cap == 0)
+				cap = 16;
+			else
+				cap *= 2;
+			*items = erealloc(*items, cap * sizeof(struct item));
+		}
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
 			item = (*items) + i;
+
+			item->offset = offset;
+			offset += linelen;
 
 			if (line[linelen - 1] == '\n')
 				line[--linelen] = '\0';
 
-			if (linetoitem(line, item) == -1) {
-				i--;
-				continue;
+			if (lazyload && f->path) {
+				if (linetoitem(line, item) == -1) {
+					i--;
+					continue;
+				}
+				/* data is ignored here, will be lazy-loaded later. */
+				item->line = NULL;
+				memset(item->fields, 0, sizeof(item->fields));
+			} else {
+				dupline = estrdup(line);
+				if (linetoitem(dupline, item) == -1) {
+					i--;
+					free(dupline);
+					continue;
+				}
 			}
 
 			(*nitems)++;
@@ -885,26 +936,20 @@ feed_load(struct feed *f, FILE *fp)
 	ssize_t want;
 	size_t i;
 
-	for (i = 0; i < nitems; i++) {
-		free(items[i].title);
-		free(items[i].url);
-		free(items[i].enclosure);
+	for (i = 0; i < nitems; i++)
 		free(items[i].line);
-	}
 	free(items);
 	items = NULL;
 	nitems = 0;
 
 	p = &panes[PaneItems];
-	for (i = 0; i < p->nrows; i++)
-		free(p->rows[i].text);
 	free(p->rows);
 	p->rows = NULL;
 	p->nrows = 0;
 
 	want = -1; /* all */
 
-	if (feed_getitems(&items, &nitems, want, fp, 0) == -1)
+	if (feed_getitems(f, f->fp, &items, &nitems, want) == -1)
 		err(1, "%s: %s", __func__, f->path);
 
 	f->totalnew = 0;
@@ -913,12 +958,11 @@ feed_load(struct feed *f, FILE *fp)
 		f->totalnew += items[i].isnew;
 
 	p->pos = 0;
-	p->selected = 0;
 	p->nrows = nitems;
 	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
 	for (i = 0; i < nitems; i++) {
-		row = pane_row_get(p, i);
-		row->text = estrdup(items[i].title);
+		row = &(p->rows[i]);
+		row->text = ""; /* custom formatter */
 		row->bold = items[i].isnew;
 		row->data = &items[i];
 	}
@@ -927,20 +971,7 @@ feed_load(struct feed *f, FILE *fp)
 }
 
 void
-feed_loadfile(struct feed *f, const char *path)
-{
-	FILE *fp;
-
-	if (!(fp = fopen(path, "r")))
-		err(1, "fopen: %s", path);
-	feed_load(f, fp);
-	if (ferror(fp))
-		err(1, "ferror: %s", path);
-	fclose(fp);
-}
-
-void
-feed_count(struct feed *f, FILE *fpin)
+feed_count(struct feed *f, FILE *fp)
 {
 	char *fields[FieldLast];
 	char *line = NULL;
@@ -949,7 +980,7 @@ feed_count(struct feed *f, FILE *fpin)
 	struct tm *tm;
 	time_t parsedtime;
 
-	while ((linelen = getline(&line, &linesize, fpin)) > 0) {
+	while ((linelen = getline(&line, &linesize, fp)) > 0) {
 		if (line[linelen - 1] == '\n')
 			line[--linelen] = '\0';
 		parseline(line, fields);
@@ -966,14 +997,34 @@ feed_count(struct feed *f, FILE *fpin)
 	free(line);
 }
 
+/* change feed, have one file open, reopen file if needed */
 void
-loadfiles(int argc, char *argv[])
+feeds_set(struct feed *f)
 {
+	if (f == curfeed)
+		return;
+
+	if (curfeed) {
+		if (curfeed->path && curfeed->fp) {
+			fclose(curfeed->fp);
+			curfeed->fp = NULL;
+		}
+	}
+
+	if (f && f->path) {
+		if (!f->fp && !(f->fp = fopen(f->path, "rb")))
+			err(1, "fopen: %s", f->path);
+	}
+
+	curfeed = f;
+}
+
+void
+feeds_load(struct feed *feeds, size_t nfeeds)
+{
+	struct feed *f;
 	FILE *fp;
 	size_t i;
-	char *name;
-
-	feeds = ecalloc(argc, sizeof(struct feed));
 
 	if ((comparetime = time(NULL)) == -1)
 		err(1, "time");
@@ -981,41 +1032,37 @@ loadfiles(int argc, char *argv[])
 	comparetime -= 86400;
 
 	totalnew = totalcount = 0;
-	if (argc == 1) {
-		feeds[0].name = "stdin";
-		if (!(fp = fdopen(ttyfd, "rb")))
-			err(1, "fdopen");
-		feed_load(&feeds[0], fp);
-		nfeeds = 1;
-		totalnew += feeds[0].totalnew;
-		totalcount += feeds[0].total;
-	} else if (argc > 1) {
-		for (i = 1; i < argc; i++) {
-			feeds[i - 1].path = argv[i];
-			name = ((name = strrchr(argv[i], '/'))) ? name + 1 : argv[i];
-			feeds[i - 1].name = name;
+	for (i = 0; i < nfeeds; i++) {
+		f = &feeds[i];
+		f->totalnew = f->total = 0;
 
-			if (!(fp = fopen(argv[i], "r")))
-				err(1, "fopen: %s", argv[i]);
-			feed_count(&feeds[i - 1], fp);
-			if (ferror(fp))
-				err(1, "ferror: %s", argv[i]);
-			fclose(fp);
-
-			totalnew += feeds[i - 1].totalnew;
-			totalcount += feeds[i - 1].total;
+		if (f->path) {
+			if (f->fp) {
+				if (fseek(f->fp, 0, SEEK_SET))
+					err(1, "fseek: %s", f->path);
+			} else {
+				if (!(f->fp = fopen(f->path, "rb")))
+					err(1, "fopen: %s", f->path);
+			}
 		}
-		nfeeds = argc - 1;
-		/* load first items, because of first selection. */
-		feed_loadfile(&feeds[0], feeds[0].path);
-	}
 
-	if (!isatty(ttyfd)) {
-		close(ttyfd);
-		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
-			err(1, "open: /dev/tty");
-		if (dup2(ttyfd, 0) == -1)
-			err(1, "dup2: /dev/tty");
+		/* load first items, because of first selection or stdin. */
+		if (i == 0)
+			feed_load(f, f->fp);
+		else
+			feed_count(f, f->fp);
+
+		/* must be able to seek if reading from a path */
+		if (lazyload && f->path && fseek(f->fp, 0, SEEK_SET))
+			err(1, "fseek: %s", f->path);
+
+		if (f->path && f->fp) {
+			fclose(f->fp);
+			f->fp = NULL;
+		}
+
+		totalnew += f->totalnew;
+		totalcount += f->total;
 	}
 }
 
@@ -1023,52 +1070,36 @@ void
 updatesidebar(int onlynew)
 {
 	struct pane *p;
-	size_t i, r;
-	int feedw, len;
-	char counts[128]; // TODO: size
-	char bufw[256]; // TODO: size
-	char tmp[256];
+	struct row *row;
+	struct feed *feed;
+	size_t i, len;
+	int width;
 
 	p = &panes[PaneFeeds];
-	for (i = 0; i < p->nrows; i++)
-		free(p->rows[i].text);
-	free(p->rows);
-	p->rows = NULL;
+
+	if (!p->rows)
+		p->rows = ecalloc(sizeof(p->rows[0]), nfeeds + 1);
 
 	p->nrows = 0;
+	p->width = 0;
+	width = 0;
 	for (i = 0; i < nfeeds; i++) {
-		if (onlynew && feeds[i].totalnew == 0)
+		feed = &feeds[i];
+
+		if (onlynew && feed->totalnew == 0)
 			continue;
+		row = &(p->rows[p->nrows]);
+		row->text = ""; /* custom formatter is used */
+		row->bold = (feed->totalnew > 0);
+		row->data = feed;
+
+		len = colw(pane_row_text(p, row));
+		if (len > width)
+			width = len;
+
 		p->nrows++;
 	}
-	p->rows = ecalloc(sizeof(p->rows[0]), p->nrows + 1);
-
-	feedw = 0;
-	for (i = 0; i < nfeeds; i++) {
-		snprintf(bufw, sizeof(bufw), "%s (%ld/%ld)",
-		               feeds[i].name,  feeds[i].totalnew, feeds[i].total);
-		len = colw(bufw);
-		if (len > feedw)
-			feedw = len;
-	}
-
-	for (i = 0, r = 0; i < nfeeds; i++) {
-		if (onlynew && feeds[i].totalnew == 0)
-			continue;
-		len = snprintf(counts, sizeof(counts), "(%ld/%ld)",
-			feeds[i].totalnew, feeds[i].total);
-
-		utf8pad(bufw, sizeof(bufw), feeds[i].name, feedw - len, ' ');
-		snprintf(tmp, sizeof(tmp), "%s%s", bufw, counts);
-
-		p->rows[r].text = estrdup(tmp);
-		p->rows[r].bold = (feeds[i].totalnew > 0);
-		p->rows[r].data = &feeds[i];
-
-		r++;
-	}
-
-	panes[PaneFeeds].width = feedw;
+	p->width = width;
 }
 
 void
@@ -1112,7 +1143,7 @@ draw(void)
 	if (panes[PaneItems].nrows &&
 	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
-		statusbar_update(&statusbar, item->url);
+		statusbar_update(&statusbar, item->fields[FieldLink]);
 	} else {
 		statusbar_update(&statusbar, "");
 	}
@@ -1165,16 +1196,14 @@ mousereport(int button, int release, int x, int y)
 				break;
 			if (i == PaneFeeds) {
 				pane_setpos(p, pos);
-				p->selected = pos;
-				row = pane_row_get(&panes[PaneFeeds], pos);
-				f = (struct feed *)row->data;
-				feed_loadfile(f, f->path);
+				feeds_set(&feeds[pos]);
+				feed_load(curfeed, curfeed->fp);
 			} else if (i == PaneItems) {
 				/* clicking the same highlighted row */
 				if (p->pos == pos && !changedpane) {
 					row = pane_row_get(&panes[PaneItems], pos);
 					item = (struct item *)row->data;
-					plumb(item->url);
+					plumb(item->fields[FieldLink]);
 				} else {
 					pane_setpos(p, pos);
 				}
@@ -1185,11 +1214,9 @@ mousereport(int button, int release, int x, int y)
 				break;
 			if (i == PaneItems) {
 				pane_setpos(p, pos);
-				p = &panes[PaneFeeds];
-				f = (struct feed *)p->rows[p->selected].data;
 				p = &panes[PaneItems];
 				item = (struct item *)p->rows[p->pos].data;
-				pipeitem(item->line);
+				pipeitem(item);
 			}
 			break;
 		case 3: /* scroll up */
@@ -1201,6 +1228,104 @@ mousereport(int button, int release, int x, int y)
 	}
 }
 
+/* custom formatter for feed row */
+char *
+feed_row_format(struct pane *p, struct row *row)
+{
+	struct feed *feed;
+	static char text[1024];
+	char bufw[256], counts[128];
+	int len;
+
+	feed = (struct feed *)row->data;
+
+	if (p->width) {
+		len = snprintf(counts, sizeof(counts), "(%ld/%ld)",
+		               feed->totalnew, feed->total);
+		utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ');
+		snprintf(text, sizeof(text), "%s%s", bufw, counts);
+	} else {
+		snprintf(text, sizeof(text), "%s (%ld/%ld)",
+		         feed->name, feed->totalnew, feed->total);
+	}
+
+	return text;
+}
+
+int
+feed_row_match(struct pane *p, struct row *row, const char *s)
+{
+	struct feed *feed;
+
+	feed = (struct feed *)row->data;
+
+	return (strcasestr(feed->name, s) != NULL);
+}
+
+struct row *
+item_row_get(struct pane *p, off_t pos)
+{
+	struct row *feedrow, *itemrow;
+	struct item *item;
+	struct feed *f;
+	char *dupline, *line = NULL;
+	size_t linesize = 0;
+	ssize_t linelen;
+
+	itemrow = p->rows + pos;
+	item = (struct item *)itemrow->data;
+
+	f = curfeed;
+	if (f && f->path && !item->line) {
+		if (fseek(f->fp, item->offset, SEEK_SET))
+			err(1, "fseek: %s", f->path);
+		linelen = getline(&line, &linesize, f->fp);
+
+		if (linelen <= 0)
+			return NULL;
+
+		if (line[linelen - 1] == '\n')
+			line[--linelen] = '\0';
+
+		dupline = estrdup(line);
+		if (linetoitem(dupline, item) == -1) {
+			free(dupline);
+			return NULL;
+		}
+		free(line);
+
+		itemrow->data = item;
+	}
+	return itemrow;
+}
+
+/* custom formatter for item row */
+char *
+item_row_format(struct pane *p, struct row *row)
+{
+	struct item *item;
+	static char text[1024];
+
+	item = (struct item *)row->data;
+
+	snprintf(text, sizeof(text), "%c %04d-%02d-%02d %02d:%02d %s",
+	         item->fields[FieldEnclosure][0] ? '@' : ' ',
+	         item->tm.tm_year + 1900, item->tm.tm_mon + 1, item->tm.tm_mday,
+	         item->tm.tm_hour, item->tm.tm_min, item->fields[FieldTitle]);
+
+	return text;
+}
+
+int
+item_row_match(struct pane *p, struct row *row, const char *s)
+{
+	struct item *item;
+
+	item = (struct item *)row->data;
+
+	return (strcasestr(item->fields[FieldTitle], s) != NULL);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1208,7 +1333,8 @@ main(int argc, char *argv[])
 	struct feed *f;
 	struct row *row;
 	struct item *item;
-	char *tmp;
+	size_t i;
+	char *name, *tmp;
 	char *search = NULL; /* search text */
 	int ch, button, x, y, release; /* mouse button event */
 	off_t off;
@@ -1220,7 +1346,40 @@ main(int argc, char *argv[])
 	if ((tmp = getenv("SFEED_PIPER")))
 		piper = tmp;
 
-	loadfiles(argc, argv);
+	feeds = ecalloc(argc, sizeof(struct feed));
+	if (argc == 1) {
+		nfeeds = 1;
+		f = &feeds[0];
+		f->name = "stdin";
+		if (!(f->fp = fdopen(ttyfd, "rb")))
+			err(1, "fdopen");
+	} else {
+		for (i = 1; i < argc; i++) {
+			f = &feeds[i - 1];
+			f->path = argv[i];
+			name = ((name = strrchr(argv[i], '/'))) ? name + 1 : argv[i];
+			f->name = name;
+		}
+		nfeeds = argc - 1;
+	}
+	feeds_set(NULL);
+	feeds_load(feeds, nfeeds);
+	feeds_set(&feeds[0]);
+
+	if (!isatty(ttyfd)) {
+		close(ttyfd);
+		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
+			err(1, "open: /dev/tty");
+		if (dup2(ttyfd, 0) == -1)
+			err(1, "dup2: /dev/tty");
+	}
+	if (argc == 1)
+		feeds[0].fp = NULL;
+
+	panes[PaneFeeds].row_format = feed_row_format;
+	panes[PaneFeeds].row_match = feed_row_match;
+	panes[PaneItems].row_format = item_row_format;
+	panes[PaneItems].row_get = item_row_get;
 
 	if (argc > 1) {
 		panes[PaneFeeds].hidden = 0;
@@ -1351,7 +1510,7 @@ nextpage:
 			if (ch == '/' || ch == 'n') {
 				/* forward */
 				for (off = p->pos + 1; off < p->nrows; off++) {
-					if (strcasestr(p->rows[off].text, search)) {
+					if (pane_row_match(p, pane_row_get(p, off), search)) {
 						pane_setpos(p, off);
 						break;
 					}
@@ -1359,7 +1518,7 @@ nextpage:
 			} else {
 				/* backward */
 				for (off = p->pos - 1; off >= 0; off--) {
-					if (strcasestr(p->rows[off].text, search)) {
+					if (pane_row_match(p, pane_row_get(p, off), search)) {
 						pane_setpos(p, off);
 						break;
 					}
@@ -1371,12 +1530,12 @@ nextpage:
 			alldirty();
 			break;
 		case 'R': /* reload all files */
-			/* if read from stdin then don't reload items. */
-			if (argc <= 1)
+			if (nfeeds == 1 && !feeds[0].path)
 				break;
-			loadfiles(argc, argv);
+			feeds_set(NULL);
+			feeds_load(feeds, nfeeds);
+			feeds_set(&feeds[0]);
 			panes[PaneFeeds].pos = 0;
-			panes[PaneFeeds].selected = 0;
 			updatesidebar(onlynew);
 			updategeom();
 			updatetitle();
@@ -1386,10 +1545,10 @@ nextpage:
 		case '@':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneFeeds];
-				f = (struct feed *)p->rows[p->selected].data;
+				f = (struct feed *)curfeed;
 				p = &panes[PaneItems];
 				item = (struct item *)p->rows[p->pos].data;
-				plumb(item->enclosure);
+				plumb(item->fields[FieldEnclosure]);
 			}
 			break;
 		case 'm': /* toggle mouse mode */
@@ -1406,7 +1565,7 @@ nextpage:
 		case 't': /* toggle showing only new in sidebar */
 			onlynew = !onlynew;
 			pane_setpos(&panes[PaneFeeds], 0);
-			panes[PaneFeeds].selected = 0;
+			feeds_set(&feeds[0]);
 			updatesidebar(onlynew);
 			updategeom();
 			break;
@@ -1414,14 +1573,13 @@ nextpage:
 		case '\n':
 			if (selpane == PaneFeeds && panes[PaneFeeds].nrows) {
 				p = &panes[selpane];
-				p->selected = p->pos;
-				f = (struct feed *)p->rows[p->pos].data;
-				feed_loadfile(f, f->path);
+				feeds_set(&feeds[p->pos]);
+				feed_load(curfeed, curfeed->fp);
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				plumb(item->url);
+				plumb(item->fields[FieldLink]);
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
@@ -1429,11 +1587,11 @@ nextpage:
 		case '|':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneFeeds];
-				f = (struct feed *)p->rows[p->selected].data;
+				f = (struct feed *)curfeed;
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				pipeitem(item->line);
+				pipeitem(item);
 			}
 			break;
 		case 4: /* EOT */
