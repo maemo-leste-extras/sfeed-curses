@@ -1038,9 +1038,6 @@ loadfiles(int argc, char *argv[])
 	FILE *fp;
 	size_t i;
 	char *name;
-	int istty;
-
-	istty = isatty(ttyfd);
 
 	feeds = ecalloc(argc, sizeof(struct feed));
 
@@ -1079,7 +1076,7 @@ loadfiles(int argc, char *argv[])
 		feed_loadfile(&feeds[0], feeds[0].path);
 	}
 
-	if (!istty) {
+	if (!isatty(ttyfd)) {
 		close(ttyfd);
 		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
 			err(1, "open: /dev/tty");
