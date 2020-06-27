@@ -990,9 +990,6 @@ feed_count(struct feed *f, FILE *fp)
 void
 feeds_set(struct feed *f)
 {
-	if (f == curfeed)
-		return;
-
 	if (curfeed) {
 		if (curfeed->path && curfeed->fp) {
 			fclose(curfeed->fp);
