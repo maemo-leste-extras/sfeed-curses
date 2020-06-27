@@ -1204,7 +1204,8 @@ mousereport(int button, int release, int x, int y)
 			if (i == PaneItems) {
 				pane_setpos(p, pos);
 				p = &panes[PaneItems];
-				item = (struct item *)p->rows[p->pos].data;
+				row = pane_row_get(p, p->pos);
+				item = (struct item *)row->data;
 				pipeitem(item);
 			}
 			break;
@@ -1534,9 +1535,9 @@ nextpage:
 		case '@':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneFeeds];
-				f = (struct feed *)curfeed;
 				p = &panes[PaneItems];
-				item = (struct item *)p->rows[p->pos].data;
+				row = pane_row_get(p, p->pos);
+				item = (struct item *)row->data;
 				plumb(item->fields[FieldEnclosure]);
 			}
 			break;
@@ -1577,7 +1578,6 @@ nextpage:
 		case '|':
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneFeeds];
-				f = (struct feed *)curfeed;
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
