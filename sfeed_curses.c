@@ -1072,8 +1072,6 @@ updatesidebar(int onlynew)
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
 
-		if (onlynew && feed->totalnew == 0)
-			continue;
 		row = &(p->rows[p->nrows]);
 		row->text = ""; /* custom formatter is used */
 		row->bold = (feed->totalnew > 0);
@@ -1082,6 +1080,9 @@ updatesidebar(int onlynew)
 		len = colw(pane_row_text(p, row));
 		if (len > width)
 			width = len;
+
+		if (onlynew && feed->totalnew == 0)
+			continue;
 
 		p->nrows++;
 	}
