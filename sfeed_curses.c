@@ -139,7 +139,7 @@ static int onlynew = 0;
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
    feed is changed while having the UI open (and offsets are changed). */
-static int lazyload = 1;
+static int lazyload = 0;
 
 static char *plumber = "xdg-open";
 static char *piper = "less";
