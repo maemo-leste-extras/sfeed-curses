@@ -856,29 +856,21 @@ linetoitem(char *line, struct item *item)
 }
 
 int
-feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems,
-              ssize_t want)
+feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 {
 	struct item *item;
 	char *dupline, *line = NULL;
-	size_t cap, linesize = 0;
-	ssize_t i, linelen;
+	size_t cap, i, linesize = 0;
+	ssize_t linelen;
 	off_t offset;
 	int ret = -1;
 
 	*items = NULL;
 	*nitems = 0;
 
-	/* if loading all items, set cap to 0, expand later */
-	if (want == -1) {
-		cap = 0;
-	} else { /* `want` is also a hint of amount to allocate. */
-		cap = (size_t)want;
-		*items = erealloc(*items, cap * sizeof(struct item));
-	}
-
+	cap = 0;
 	offset = 0;
-	for (i = 0; want == -1 || i < want; i++) {
+	for (i = 0; ; i++) {
 		if (i + 1 >= cap) {
 			if (cap == 0)
 				cap = 16;
@@ -933,7 +925,6 @@ feed_load(struct feed *f, FILE *fp)
 	static size_t nitems = 0;
 	struct pane *p;
 	struct row *row;
-	ssize_t want;
 	size_t i;
 
 	for (i = 0; i < nitems; i++)
@@ -947,9 +938,7 @@ feed_load(struct feed *f, FILE *fp)
 	p->rows = NULL;
 	p->nrows = 0;
 
-	want = -1; /* all */
-
-	if (feed_getitems(f, f->fp, &items, &nitems, want) == -1)
+	if (feed_getitems(f, f->fp, &items, &nitems) == -1)
 		err(1, "%s: %s", __func__, f->path);
 
 	f->totalnew = 0;
