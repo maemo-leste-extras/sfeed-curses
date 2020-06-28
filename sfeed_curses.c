@@ -445,7 +445,7 @@ pipeitem(const char *cmd, struct item *item)
 			fputs(item->fields[i], fp);
 		}
 		fputc('\n', fp);
-		exit(pclose(fp));
+		_exit(pclose(fp));
 		break;
 	default:
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
