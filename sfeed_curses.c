@@ -119,7 +119,6 @@ static struct feed *curfeed;
 static size_t nfeeds; /* amount of feeds */
 
 static time_t comparetime;
-static unsigned long totalnew, totalcount;
 
 struct item {
 	char *fields[FieldLast];
@@ -336,7 +335,14 @@ resettitle(void)
 void
 updatetitle(void)
 {
-	printf("\x1b]2;(%lu/%lu) - sfeed_curses\x1b\\", totalnew, totalcount);
+	unsigned long totalnew = 0, total = 0;
+	size_t i;
+
+	for (i = 0; i < nfeeds; i++) {
+		totalnew += feeds[i].totalnew;
+		total += feeds[i].total;
+	}
+	printf("\x1b]2;(%lu/%lu) - sfeed_curses\x1b\\", totalnew, total);
 }
 
 void
@@ -1027,7 +1033,6 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 	/* 1 day is old news */
 	comparetime -= 86400;
 
-	totalnew = totalcount = 0;
 	for (i = 0; i < nfeeds; i++) {
 		f = &feeds[i];
 		f->totalnew = f->total = 0;
@@ -1056,9 +1061,6 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 			fclose(f->fp);
 			f->fp = NULL;
 		}
-
-		totalnew += f->totalnew;
-		totalcount += f->total;
 	}
 }
 
@@ -1197,6 +1199,9 @@ mousereport(int button, int release, int x, int y)
 				f = (struct feed *)row->data;
 				feeds_set(f);
 				feed_load(f, f->fp);
+				/* redraw row: counts could be changed */
+				pane_row_draw(p, pos);
+				updatetitle();
 			} else if (i == PaneItems) {
 				/* clicking the same highlighted row */
 				if (p->pos == pos && !changedpane) {
@@ -1565,6 +1570,9 @@ nextpage:
 				f = (struct feed *)row->data;
 				feeds_set(f);
 				feed_load(f, f->fp);
+				/* redraw row: counts could be changed */
+				pane_row_draw(p, p->pos);
+				updatetitle();
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
