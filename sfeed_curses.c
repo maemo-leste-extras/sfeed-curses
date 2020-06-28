@@ -420,18 +420,27 @@ init(void)
 	needcleanup = 1;
 }
 
+/* pipe item to a program, if `wantoutput` is set then cleanup and restore the
+   terminal attribute settings, if not set then don't do that and also ignore
+   stdout and stderr. */
 void
-pipeitem(const char *cmd, struct item *item)
+pipeitem(const char *cmd, struct item *item, int wantoutput)
 {
 	FILE *fp;
 	int i, pid, wpid;
 
-	cleanup();
+	if (wantoutput)
+		cleanup();
 	switch ((pid = fork())) {
 	case -1:
 		err(1, "fork");
 		return;
 	case 0:
+		if (!wantoutput) {
+			dup2(devnullfd, 1);
+			dup2(devnullfd, 2);
+		}
+
 		errno = 0;
 		if (!(fp = popen(cmd, "we"))) {
 			fputs("popen: ", stderr);
@@ -450,9 +459,12 @@ pipeitem(const char *cmd, struct item *item)
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
 			;
 	}
-	updatesidebar(onlynew);
-	updatetitle();
-	init();
+
+	if (wantoutput) {
+		updatesidebar(onlynew);
+		updatetitle();
+		init();
+	}
 }
 
 void
@@ -1220,7 +1232,7 @@ mousereport(int button, int release, int x, int y)
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				pipeitem(piper, item);
+				pipeitem(piper, item, 1);
 			}
 			break;
 		case 3: /* scroll up */
@@ -1589,9 +1601,9 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				switch (ch) {
-				case 'y': pipeitem("cut -f 3 | xclip -r", item); break;
-				case 'E': pipeitem("cut -f 8 | xclip -r", item); break;
-				default:  pipeitem(piper, item); break;
+				case 'y': pipeitem("cut -f 3 | xclip -r", item, 0); break;
+				case 'E': pipeitem("cut -f 8 | xclip -r", item, 0); break;
+				default:  pipeitem(piper, item, 1); break;
 				}
 			}
 			break;
