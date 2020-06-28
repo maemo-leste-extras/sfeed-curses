@@ -1,4 +1,4 @@
-.Dd June 24, 2020
+.Dd June 28, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -87,6 +87,12 @@ The url is passed as a parameter to the program specified in
 Pipe TAB-Separated Value line to a program.
 The line is piped to the program specified in
 .Ev SFEED_PIPER .
+.It y
+Pipe the TAB-Separated Value for yanking the url.
+The used command to yank the url is "cut -f 3 | xclip -r".
+.It E
+Pipe the TAB-Separated Value for yanking the enclosure.
+The used command to yank the enclosure is "cut -f 8 | xclip -r".
 .It q, EOF
 quit
 .El

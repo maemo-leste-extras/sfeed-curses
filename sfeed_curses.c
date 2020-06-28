@@ -1583,11 +1583,17 @@ nextpage:
 		case 'c': /* items: pipe TSV line to program */
 		case 'p':
 		case '|':
+		case 'y': /* yank: pipe TSV line to yank url to clipboard */
+		case 'E': /* yank: pipe TSV line to yank enclosure to clipboard */
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				pipeitem(piper, item);
+				switch (ch) {
+				case 'y': pipeitem("cut -f 3 | xclip -r", item); break;
+				case 'E': pipeitem("cut -f 8 | xclip -r", item); break;
+				default:  pipeitem(piper, item); break;
+				}
 			}
 			break;
 		case 4: /* EOT */
