@@ -1110,6 +1110,7 @@ updatesidebar(int onlynew)
 		p->nrows++;
 	}
 	p->width = width;
+	p->dirty = 1;
 }
 
 void
@@ -1571,7 +1572,6 @@ nextpage:
 			onlynew = !onlynew;
 			pane_setpos(&panes[PaneFeeds], 0);
 			updatesidebar(onlynew);
-			updategeom();
 			break;
 		case 'o': /* feeds: load, items: plumb url */
 		case '\n':
