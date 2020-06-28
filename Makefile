@@ -13,6 +13,9 @@ SFEED_CFLAGS = ${CFLAGS}
 SFEED_LDFLAGS = ${LDFLAGS} -lcurses
 SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
 
+# Linux: some distros use ncurses and require -lncurses.
+#SFEED_LDFLAGS = ${LDFLAGS} -lncurses
+
 BIN = sfeed_curses
 
 SRC = ${BIN:=.c}
