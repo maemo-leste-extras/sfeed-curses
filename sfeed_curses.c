@@ -416,7 +416,7 @@ init(void)
 }
 
 void
-pipeitem(struct item *item)
+pipeitem(const char *cmd, struct item *item)
 {
 	FILE *fp;
 	int i, pid, wpid;
@@ -428,7 +428,7 @@ pipeitem(struct item *item)
 		return;
 	case 0:
 		errno = 0;
-		if (!(fp = popen(piper, "we"))) {
+		if (!(fp = popen(cmd, "we"))) {
 			fputs("popen: ", stderr);
 			perror(NULL);
 			_exit(1);
@@ -451,7 +451,7 @@ pipeitem(struct item *item)
 }
 
 void
-plumb(char *url)
+plumb(const char *cmd, char *url)
 {
 	switch (fork()) {
 	case -1:
@@ -460,7 +460,7 @@ plumb(char *url)
 	case 0:
 		dup2(devnullfd, 1);
 		dup2(devnullfd, 2);
-		if (execlp(plumber, plumber, url, NULL) < 0)
+		if (execlp(cmd, cmd, url, NULL) < 0)
 			_exit(1);
 	}
 }
@@ -1202,7 +1202,7 @@ mousereport(int button, int release, int x, int y)
 				if (p->pos == pos && !changedpane) {
 					row = pane_row_get(&panes[PaneItems], pos);
 					item = (struct item *)row->data;
-					plumb(item->fields[FieldLink]);
+					plumb(plumber, item->fields[FieldLink]);
 				} else {
 					pane_setpos(p, pos);
 				}
@@ -1216,7 +1216,7 @@ mousereport(int button, int release, int x, int y)
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				pipeitem(item);
+				pipeitem(piper, item);
 			}
 			break;
 		case 3: /* scroll up */
@@ -1537,7 +1537,7 @@ nextpage:
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				plumb(item->fields[FieldEnclosure]);
+				plumb(plumber, item->fields[FieldEnclosure]);
 			}
 			break;
 		case 'm': /* toggle mouse mode */
@@ -1569,7 +1569,7 @@ nextpage:
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				plumb(item->fields[FieldLink]);
+				plumb(plumber, item->fields[FieldLink]);
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
@@ -1579,7 +1579,7 @@ nextpage:
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				pipeitem(item);
+				pipeitem(piper, item);
 			}
 			break;
 		case 4: /* EOT */
