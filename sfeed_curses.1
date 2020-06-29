@@ -1,4 +1,4 @@
-.Dd June 28, 2020
+.Dd June 29, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -19,10 +19,12 @@ If one or more
 are specified, the basename of the
 .Ar file
 is used as the feed name in the output.
+It will also show a sidebar with the feeds.
 If no
 .Ar file
 parameters are specified and so the data is read from stdin the feed name
 is empty.
+There will be no sidebar visible by default when reading from stdin.
 .Pp
 Items with a timestamp from the last day compared to the system time at the
 time of formatting are marked as new.
@@ -128,6 +130,7 @@ It can be used by the plumb or pipe program for scripting purposes.
 .Sh SEE ALSO
 .Xr sfeed 1 ,
 .Xr sfeed_plain 1 ,
-.Xr sfeed 5
+.Xr sfeed 5 ,
+.Xr xclip 1
 .Sh AUTHORS
 .An Hiltjo Posthuma Aq Mt hiltjo@codemadness.org
