@@ -1076,10 +1076,6 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 		else
 			feed_count(f, f->fp);
 
-		/* must be able to seek if reading from a path */
-		if (lazyload && f->path && fseek(f->fp, 0, SEEK_SET))
-			err(1, "fseek: %s", f->path);
-
 		if (f->path && f->fp) {
 			fclose(f->fp);
 			f->fp = NULL;
