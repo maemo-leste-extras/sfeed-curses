@@ -1,9 +1,73 @@
-sfeed curses UI
+sfeed_curses
+------------
+
+sfeed_curses is a curses UI front-end for sfeed.
+
+It shows the TAB-separated feed items in a graphical command-line UI. The
+interface has a look inspired by the mutt mail client. It has a sidebar panel
+for the feeds, a panel with a listing of the items and a small statusbar for
+the selected item/url. Some functions like searching and scrolling are
+integrated in the interface itself.
+
+
+Build and install
+-----------------
+
+$ make
+# make install
+
+
+Usage
+-----
+
+Like the format programs included in sfeed you can run it like this:
+
+	sfeed_curses ~/.sfeed/feeds/*
+
+... or by reading from stdin:
+
+	sfeed_curses < ~/.sfeed/feeds/xkcd
 
 
 Dependencies
 ------------
 
-* C compiler
-* curses
-* A terminal (emulator) supporting UTF-8 and more modern capabilities.
+- C compiler (C99).
+- libc (recommended: C99 and POSIX >= 200809).
+- curses (typically ncurses).
+
+
+Optional dependencies
+---------------------
+
+- POSIX make(1) for Makefile.
+- mandoc for documentation: https://mdocml.bsd.lv/
+
+
+Run-time dependencies
+---------------------
+
+- A (POSIX) shell.
+- A terminal (emulator) supporting UTF-8 and more modern capabilities.
+- xclip for yanking the url or enclosure: can be changed easily.
+
+
+OS tested
+---------
+
+- Linux (compilers: clang, gcc, tcc, libc: glibc, musl).
+- OpenBSD (clang, gcc)
+- NetBSD
+- HaikuOS
+
+
+License
+-------
+
+ISC, see LICENSE file.
+
+
+Author
+------
+
+Hiltjo Posthuma <hiltjo@codemadness.org>
