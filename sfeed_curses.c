@@ -353,6 +353,8 @@ mousemode(int on)
 void
 cleanup(void)
 {
+	struct sigaction sa;
+
 	if (!needcleanup)
 		return;
 
@@ -369,7 +371,11 @@ cleanup(void)
 	resettitle();
 	fflush(stdout);
 
-	signal(SIGWINCH, SIG_DFL);
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	sa.sa_handler = SIG_DFL;
+	if (sigaction(SIGWINCH, &sa, NULL) == -1)
+		err(1, "sigaction: SIGWINCH");
 
 	needcleanup = 0;
 }
@@ -396,6 +402,8 @@ getwinsize(void)
 void
 init(void)
 {
+	struct sigaction sa;
+
 	tcgetattr(ttyfd, &tsave);
 	memcpy(&tcur, &tsave, sizeof(tcur));
 	tcur.c_lflag &= ~(ECHO|ICANON);
@@ -415,7 +423,11 @@ init(void)
 
 	fflush(stdout);
 
-	signal(SIGWINCH, sighandler);
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
+	sa.sa_handler = sighandler;
+	if (sigaction(SIGWINCH, &sa, NULL) == -1)
+		err(1, "sigaction: SIGWINCH");
 
 	needcleanup = 1;
 }
