@@ -1342,6 +1342,21 @@ item_row_format(struct pane *p, struct row *row)
 }
 
 int
+readch(void)
+{
+	unsigned char b;
+	ssize_t n;
+
+	n = read(ttyfd, &b, 1);
+	if (n < 0)
+		return EOF;
+	else if (n == -1)
+		err(1, "read");
+
+	return (int)b;
+}
+
+int
 main(int argc, char *argv[])
 {
 	struct pane *p;
@@ -1415,15 +1430,16 @@ main(int argc, char *argv[])
 
 	draw();
 
-	while ((ch = getchar()) != EOF) {
+	while ((ch = readch()) != EOF) {
 		switch (ch) {
 		case '\x1b':
-			if ((ch = getchar()) != '[')
+			ch = readch();
+			if (ch != '[' && ch != 'O')
 				continue; /* unhandled */
-			switch ((ch = getchar())) {
+			switch ((ch = readch())) {
 			case EOF: goto end;
 			case 'M': /* reported mouse event */
-				if ((ch = getchar()) == EOF)
+				if ((ch = readch()) == EOF)
 					goto end;
 				/* button numbers (0 - 2) encoded in lowest 2 bits
 				   release does not indicate which button (so set to 0). */
@@ -1441,9 +1457,9 @@ main(int argc, char *argv[])
 					}
 				}
 				/* X10 mouse-encoding */
-				if ((x = getchar()) == EOF)
+				if ((x = readch()) == EOF)
 					goto end;
-				if ((y = getchar()) == EOF)
+				if ((y = readch()) == EOF)
 					goto end;
 				mousereport(button, release, x - 33, y - 33);
 				break;
@@ -1451,17 +1467,18 @@ main(int argc, char *argv[])
 			case 'B': goto keydown;  /* arrow down */
 			case 'C': goto keyright; /* arrow left */
 			case 'D': goto keyleft;  /* arrow right */
+			case 'F': goto endpos;   /* end */
 			case 'H': goto startpos; /* home */
 			case '4': /* end */
-				if ((ch = getchar()) == '~')
+				if ((ch = readch()) == '~')
 					goto endpos;
 				continue;
 			case '5': /* page up */
-				if ((ch = getchar()) == '~')
+				if ((ch = readch()) == '~')
 					goto prevpage;
 				continue;
 			case '6': /* page down */
-				if ((ch = getchar()) == '~')
+				if ((ch = readch()) == '~')
 					goto nextpage;
 				continue;
 			}
