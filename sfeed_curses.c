@@ -20,12 +20,12 @@
 
 #define LEN(a) sizeof((a))/sizeof((a)[0])
 
+enum Pane { PaneFeeds, PaneItems, PaneLast };
+
 enum {
 	FieldUnixTimestamp = 0, FieldTitle, FieldLink, FieldContent,
 	FieldContentType, FieldId, FieldAuthor, FieldEnclosure, FieldLast
 };
-
-enum Pane { PaneFeeds, PaneItems, PaneLast };
 
 struct win {
 	int width;
@@ -37,17 +37,6 @@ struct row {
 	char *text;
 	int bold;
 	void *data;
-};
-
-struct scrollbar {
-	int tickpos;
-	int ticksize;
-	int x; /* absolute x position of the window on the screen */
-	int y; /* absolute y position of the window on the screen */
-	int size; /* absolute size of the bar */
-	int focused; /* has focus or not */
-	int hidden; /* is visible or not */
-	int dirty; /* needs draw update */
 };
 
 struct pane {
@@ -67,6 +56,17 @@ struct pane {
 	int (*row_match)(struct pane *, struct row *, const char *);
 };
 
+struct scrollbar {
+	int tickpos;
+	int ticksize;
+	int x; /* absolute x position of the window on the screen */
+	int y; /* absolute y position of the window on the screen */
+	int size; /* absolute size of the bar */
+	int focused; /* has focus or not */
+	int hidden; /* is visible or not */
+	int dirty; /* needs draw update */
+};
+
 struct statusbar {
 	int x; /* absolute x position of the window on the screen */
 	int y; /* absolute y position of the window on the screen */
@@ -76,33 +76,7 @@ struct statusbar {
 	int dirty; /* needs draw update */
 };
 
-#undef err
-void err(int, const char *, ...);
-
-void alldirty(void);
-void cleanup(void);
-void draw(void);
-void pane_draw(struct pane *);
-void pane_setpos(struct pane *p, off_t pos);
-void statusbar_draw(struct statusbar *);
-void sighandler(int);
-void updategeom(void);
-void updatesidebar(int);
-
-static struct statusbar statusbar;
-static struct pane panes[PaneLast];
-static struct scrollbar scrollbars[PaneLast]; /* each pane has a scrollbar */
-static struct win win;
-static size_t selpane;
-
-static struct termios tsave; /* terminal state at startup */
-static struct termios tcur;
-
-static struct winsize winsz; /* window size information */
-static int ttyfd = 0; /* fd of tty */
-static int devnullfd;
-
-static int needcleanup;
+/* /UI */
 
 /* feed info */
 struct feed {
@@ -113,12 +87,6 @@ struct feed {
 	FILE *fp;               /* file pointer */
 };
 
-static struct feed *feeds;
-static struct feed *curfeed;
-static size_t nfeeds; /* amount of feeds */
-
-static time_t comparetime;
-
 struct item {
 	char *fields[FieldLast];
 	char *line; /* allocated split line */
@@ -128,19 +96,46 @@ struct item {
 	off_t offset; /* line offset in file */
 };
 
+#undef err
+void err(int, const char *, ...);
+
+void alldirty(void);
+void cleanup(void);
+void draw(void);
+void pane_draw(struct pane *);
+void sighandler(int);
+void updategeom(void);
+void updatesidebar(int);
+
+static struct statusbar statusbar;
+static struct pane panes[PaneLast];
+static struct scrollbar scrollbars[PaneLast]; /* each pane has a scrollbar */
+static struct win win;
+static size_t selpane;
+static int usemouse = 1; /* use xterm mouse tracking */
+static int onlynew = 0; /* show only new in sidebar */
+
+static struct termios tsave; /* terminal state at startup */
+static struct termios tcur;
+static struct winsize winsz; /* window size information */
+static int ttyfd = 0; /* fd of tty */
+static int devnullfd;
+static int needcleanup;
+
+static struct feed *feeds;
+static struct feed *curfeed;
+static size_t nfeeds; /* amount of feeds */
+static time_t comparetime;
+
 /* config */
 
-/* use xterm mouse tracking */
-static int usemouse = 1;
-/* show only new in sidebar (default = 0 = all) */
-static int onlynew = 0;
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
    feed is changed while having the UI open (and offsets are changed). */
 static int lazyload = 0;
 
-static char *plumber = "xdg-open";
-static char *piper = "less";
+static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
+static char *piper = "less"; /* environment variable: $SFEED_PIPER */
 
 void
 err(int code, const char *fmt, ...)
