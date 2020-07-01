@@ -91,7 +91,7 @@ struct item {
 	char *fields[FieldLast];
 	char *line; /* allocated split line */
 	time_t timestamp;
-	struct tm tm;
+	int timeok;
 	int isnew;
 	off_t offset; /* line offset in file */
 };
@@ -872,15 +872,16 @@ linetoitem(char *line, struct item *item)
 	parseline(line, fields);
 
 	parsedtime = 0;
-	if (strtotime(fields[FieldUnixTimestamp], &parsedtime))
-		return -1;
-	if (!localtime_r(&parsedtime, &tm))
-		return -1;
+	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
+		item->timestamp = parsedtime;
+		item->timeok = 1;
+	} else {
+		item->timestamp = 0;
+		item->timeok = 0;
+	}
 
 	item->line = line;
 	item->isnew = (parsedtime >= comparetime);
-	item->timestamp = parsedtime;
-	memcpy(&(item->tm), &tm, sizeof(tm));
 	memcpy(item->fields, fields, sizeof(fields));
 
 	return 0;
@@ -890,7 +891,7 @@ int
 feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 {
 	struct item *item;
-	char *dupline, *line = NULL;
+	char *line = NULL;
 	size_t cap, i, linesize = 0;
 	ssize_t linelen;
 	off_t offset;
@@ -919,20 +920,13 @@ feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 				line[--linelen] = '\0';
 
 			if (lazyload && f->path) {
-				if (linetoitem(line, item) == -1) {
-					i--;
-					continue;
-				}
+				linetoitem(line, item);
+
 				/* data is ignored here, will be lazy-loaded later. */
 				item->line = NULL;
 				memset(item->fields, 0, sizeof(item->fields));
 			} else {
-				dupline = estrdup(line);
-				if (linetoitem(dupline, item) == -1) {
-					i--;
-					free(dupline);
-					continue;
-				}
+				linetoitem(estrdup(line), item);
 			}
 
 			(*nitems)++;
@@ -997,7 +991,6 @@ feed_count(struct feed *f, FILE *fp)
 	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t linelen;
-	struct tm *tm;
 	time_t parsedtime;
 
 	while ((linelen = getline(&line, &linesize, fp)) > 0) {
@@ -1006,12 +999,8 @@ feed_count(struct feed *f, FILE *fp)
 		parseline(line, fields);
 
 		parsedtime = 0;
-		if (strtotime(fields[FieldUnixTimestamp], &parsedtime))
-			continue;
-		if (!(tm = localtime(&parsedtime)))
-			continue; /* ignore item */
-
-		f->totalnew += (parsedtime >= comparetime);
+		if (!strtotime(fields[FieldUnixTimestamp], &parsedtime))
+			f->totalnew += (parsedtime >= comparetime);
 		f->total++;
 	}
 	free(line);
@@ -1301,7 +1290,7 @@ item_row_get(struct pane *p, off_t pos)
 	struct row *itemrow;
 	struct item *item;
 	struct feed *f;
-	char *dupline, *line = NULL;
+	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t linelen;
 
@@ -1320,11 +1309,7 @@ item_row_get(struct pane *p, off_t pos)
 		if (line[linelen - 1] == '\n')
 			line[--linelen] = '\0';
 
-		dupline = estrdup(line);
-		if (linetoitem(dupline, item) == -1) {
-			free(dupline);
-			return NULL;
-		}
+		linetoitem(estrdup(line), item);
 		free(line);
 
 		itemrow->data = item;
@@ -1336,15 +1321,23 @@ item_row_get(struct pane *p, off_t pos)
 char *
 item_row_format(struct pane *p, struct row *row)
 {
-	struct item *item;
 	static char text[1024];
+	struct item *item;
+	struct tm tm;
 
 	item = (struct item *)row->data;
 
-	snprintf(text, sizeof(text), "%c %04d-%02d-%02d %02d:%02d %s",
-	         item->fields[FieldEnclosure][0] ? '@' : ' ',
-	         item->tm.tm_year + 1900, item->tm.tm_mon + 1, item->tm.tm_mday,
-	         item->tm.tm_hour, item->tm.tm_min, item->fields[FieldTitle]);
+	if (item->timeok && localtime_r(&(item->timestamp), &tm)) {
+		snprintf(text, sizeof(text), "%c %04d-%02d-%02d %02d:%02d %s",
+		         item->fields[FieldEnclosure][0] ? '@' : ' ',
+		         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+		         tm.tm_hour, tm.tm_min, item->fields[FieldTitle]);
+	} else {
+		localtime_r(&(item->timestamp), &tm);
+		snprintf(text, sizeof(text), "%c                  %s",
+		         item->fields[FieldEnclosure][0] ? '@' : ' ',
+		         item->fields[FieldTitle]);
+	}
 
 	return text;
 }
