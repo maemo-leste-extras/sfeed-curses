@@ -323,7 +323,7 @@ printpad(const char *s, int width)
 void
 resettitle(void)
 {
-	printf("\x1b%c", 'c'); /* reset title and state */
+	fputs("\x1b""c", stdout); /* reset title and state */
 }
 
 void
@@ -1564,7 +1564,7 @@ nextpage:
 			break;
 		case 'R': /* reload all files */
 			if (nfeeds == 1 && !feeds[0].path)
-				break;
+				break; /* do not reload when read from stdin */
 			feeds_set(NULL);
 			feeds_load(feeds, nfeeds);
 			feeds_set(&feeds[0]);
