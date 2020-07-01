@@ -427,8 +427,9 @@ init(void)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = sighandler;
-	if (sigaction(SIGWINCH, &sa, NULL) == -1)
-		err(1, "sigaction: SIGWINCH");
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGWINCH, &sa, NULL);
 
 	needcleanup = 1;
 }
@@ -1125,10 +1126,16 @@ updatesidebar(int onlynew)
 void
 sighandler(int signo)
 {
-	if (signo == SIGWINCH) {
+	switch (signo) {
+	case SIGINT:
+	case SIGTERM:
+		exit(signo);
+		break;
+	case SIGWINCH:
 		getwinsize();
 		updategeom();
 		draw();
+		break;
 	}
 }
 
