@@ -346,6 +346,12 @@ mousemode(int on)
 }
 
 void
+cursormode(int on)
+{
+	putp(on ? "\x1b[?25h" : "\x1b[?25l"); /* DECTCEM (in)Visible cursor */
+}
+
+void
 cleanup(void)
 {
 	struct sigaction sa;
@@ -356,7 +362,7 @@ cleanup(void)
 	/* restore terminal settings */
 	tcsetattr(ttyfd, TCSANOW, &tsave);
 
-	putp(tparm(cursor_visible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormode(1);
 	putp(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
 	/* xterm mouse-mode */
@@ -408,7 +414,7 @@ init(void)
 
 	setupterm(NULL, 1, NULL);
 	putp(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormode(0);
 
 	/* xterm mouse-mode */
 	if (usemouse)
@@ -807,14 +813,14 @@ uiprompt(int x, int y, char *fmt, ...)
 	putp(tparm(exit_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
 	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(cursor_visible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormode(1);
 	putp(tparm(cursor_address, y, x + colw(buf), 0, 0, 0, 0, 0, 0, 0));
 	fflush(stdout);
 
 	n = 0;
 	r = getline(&input, &n, stdin);
 
-	putp(tparm(cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormode(0);
 	tcsetattr(ttyfd, TCSANOW, &tcur); /* restore */
 	putp(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
