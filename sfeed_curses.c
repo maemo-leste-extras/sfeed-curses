@@ -850,19 +850,18 @@ uiprompt(int x, int y, char *fmt, ...)
 		buf[sizeof(buf) - 1] = '\0';
 	va_end(ap);
 
-	tcgetattr(ttyfd, &tset);
-	tset.c_lflag |= (ECHO|ICANON);
-	tcsetattr(ttyfd, TCSANOW, &tset);
-
 	cursormove(x, y);
 	attrmode(ATTR_REVERSE_ON);
 	fputs(buf, stdout);
 	attrmode(ATTR_REVERSE_OFF);
-
 	cleareol();
 	cursormode(1);
-	cursormove(x + colw(buf), y);
+	cursormove(x + colw(buf) + 1, y);
 	fflush(stdout);
+
+	tcgetattr(ttyfd, &tset);
+	tset.c_lflag |= (ECHO|ICANON);
+	tcsetattr(ttyfd, TCSANOW, &tset);
 
 	n = 0;
 	r = getline(&input, &n, stdin);
@@ -1577,7 +1576,7 @@ nextpage:
 				tmp = ch == '?' ? "backward" : "forward";
 				free(search);
 				search = uiprompt(statusbar.x, statusbar.y,
-				                  "Search (%s): ", tmp);
+				                  "Search (%s):", tmp);
 				alldirty();
 				draw();
 			}
