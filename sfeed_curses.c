@@ -910,7 +910,6 @@ int
 linetoitem(char *line, struct item *item)
 {
 	char *fields[FieldLast];
-	struct tm tm;
 	time_t parsedtime;
 
 	parseline(line, fields);
