@@ -374,10 +374,9 @@ cleanup(void)
 	fflush(stdout);
 
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
+	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = SIG_DFL;
-	if (sigaction(SIGWINCH, &sa, NULL) == -1)
-		err(1, "sigaction: SIGWINCH");
+	sigaction(SIGWINCH, &sa, NULL);
 
 	needcleanup = 0;
 }
@@ -570,17 +569,16 @@ pane_setpos(struct pane *p, off_t pos)
 	if (pos >= p->nrows)
 		pos = p->nrows - 1; /* clamp */
 
-	/* is on different screen ? */
+	/* is on different screen? mark dirty */
 	if (((p->pos - (p->pos % p->height)) / p->height) !=
 	    ((pos - (pos % p->height)) / p->height)) {
 		p->pos = pos;
-		// TODO: dirty region handling? or setting dirty per row?
 		p->dirty = 1;
 		pane_draw(p);
 	} else {
+		/* only redraw the 1 or 2 dirty rows */
 		prev = p->pos;
 		p->pos = pos;
-		// TODO: dirty region handling? or setting dirty per row?
 		pane_row_draw(p, prev); /* draw previous row again */
 		pane_row_draw(p, p->pos); /* draw new highlighted row */
 	}
