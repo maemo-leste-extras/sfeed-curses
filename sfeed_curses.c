@@ -359,6 +359,20 @@ cursormode(int on)
 }
 
 void
+cursorsave(void)
+{
+	/*fputs("\x1b""7", stdout);*/
+	putp(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
+cursorrestore(void)
+{
+	/*fputs("\x1b""8", stdout);*/
+	putp(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
 cursormove(int x, int y)
 {
 	/*printf("\x1b[%d;%dH", y + 1, x + 1);*/
@@ -582,6 +596,7 @@ pane_row_draw(struct pane *p, off_t pos)
 	row = pane_row_get(p, pos);
 
 	y = p->y + (pos % p->height); /* relative position on screen */
+	cursorsave();
 	cursormove(p->x, y);
 
 	r = 0;
@@ -600,6 +615,7 @@ pane_row_draw(struct pane *p, off_t pos)
 		printf("%-*.*s", p->width, p->width, "");
 	if (r)
 		attrmode(ATTR_RESET);
+	cursorrestore();
 }
 
 void
@@ -817,6 +833,7 @@ scrollbar_draw(struct scrollbar *s)
 	if (s->hidden || !s->dirty)
 		return;
 
+	cursorsave();
 	if (!s->focused)
 		attrmode(ATTR_FAINT_ON);
 	for (y = 0; y < s->size; y++) {
@@ -831,6 +848,7 @@ scrollbar_draw(struct scrollbar *s)
 	}
 	if (!s->focused)
 		attrmode(ATTR_RESET);
+	cursorrestore();
 	s->dirty = 0;
 }
 
@@ -886,6 +904,7 @@ uiprompt(int x, int y, char *fmt, ...)
 		buf[sizeof(buf) - 1] = '\0';
 	va_end(ap);
 
+	cursorsave();
 	cursormove(x, y);
 	attrmode(ATTR_REVERSE_ON);
 	fputs(buf, stdout);
@@ -898,6 +917,7 @@ uiprompt(int x, int y, char *fmt, ...)
 	input = lineeditor();
 
 	cursormode(0);
+	cursorrestore();
 
 	return input;
 }
@@ -907,10 +927,13 @@ statusbar_draw(struct statusbar *s)
 {
 	if (s->hidden || !s->dirty)
 		return;
+
+	cursorsave();
 	cursormove(s->x, s->y);
 	attrmode(ATTR_REVERSE_ON);
 	printpad(s->text, s->width);
 	attrmode(ATTR_REVERSE_OFF);
+	cursorrestore();
 	s->dirty = 0;
 }
 
