@@ -137,6 +137,7 @@ static int lazyload = 0;
 static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
 static char *piper = "less"; /* environment variable: $SFEED_PIPER */
 
+/* like BSD err(), but calls cleanup() and _exit(). */
 void
 err(int code, const char *fmt, ...)
 {
@@ -1118,7 +1119,8 @@ sighandler(int signo)
 	switch (signo) {
 	case SIGINT:
 	case SIGTERM:
-		exit(signo);
+		cleanup();
+		_exit(128 + signo);
 		break;
 	case SIGWINCH:
 		getwinsize();
@@ -1427,8 +1429,6 @@ main(int argc, char *argv[])
 	updatesidebar(onlynew);
 	init();
 
-	atexit(cleanup);
-
 	draw();
 
 	while ((ch = readch()) != EOF) {
@@ -1639,5 +1639,7 @@ nextpage:
 		draw();
 	}
 end:
+	cleanup();
+
 	return 0;
 }
