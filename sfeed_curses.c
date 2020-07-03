@@ -1410,7 +1410,7 @@ readch(void)
 	ssize_t n;
 
 	n = read(0, &b, 1);
-	if (n < 0)
+	if (n == 0)
 		return EOF;
 	else if (n == -1)
 		err(1, "read");
