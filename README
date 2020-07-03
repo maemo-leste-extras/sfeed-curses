@@ -56,7 +56,7 @@ OS tested
 ---------
 
 - Linux (compilers: clang, gcc, tcc, libc: glibc, musl).
-- OpenBSD (clang, gcc)
+- OpenBSD (clang, gcc).
 - NetBSD
 - HaikuOS
 
