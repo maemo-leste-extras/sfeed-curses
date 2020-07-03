@@ -1,4 +1,3 @@
-#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -18,7 +17,15 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#define LEN(a) sizeof((a))/sizeof((a)[0])
+#define LEN(a)              sizeof((a))/sizeof((a)[0])
+#define PAD_TRUNCATE_SYMBOL "\xe2\x80\xa6" /* symbol: "ellipsis" */
+#define SCROLLBAR_SYMBOL    "\xe2\x94\x82" /* symbol: "light vertical" */
+
+enum {
+	ATTR_RESET = 0,
+	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2,
+	ATTR_REVERSE_ON = 7, ATTR_REVERSE_OFF = 27,
+};
 
 enum Pane { PaneFeeds, PaneItems, PaneLast };
 
@@ -117,7 +124,6 @@ static int onlynew = 0; /* show only new in sidebar */
 
 static struct termios tsave; /* terminal state at startup */
 static struct termios tcur;
-static struct winsize winsz; /* window size information */
 static int ttyfd = 0; /* fd of tty */
 static int devnullfd;
 static int needcleanup;
@@ -288,8 +294,8 @@ utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 		if (col + w > len || (col + w == len && s[i + rl])) {
 			if (siz + 4 >= bufsiz)
 				return -1;
-			memcpy(&buf[siz], "\xe2\x80\xa6", 3); /* ellipsis */
-			siz += 3;
+			memcpy(&buf[siz], PAD_TRUNCATE_SYMBOL, sizeof(PAD_TRUNCATE_SYMBOL) - 1);
+			siz += sizeof(PAD_TRUNCATE_SYMBOL) - 1;
 			if (col + w == len && w > 1)
 				buf[siz++] = pad;
 			buf[siz] = '\0';
@@ -343,13 +349,52 @@ updatetitle(void)
 void
 mousemode(int on)
 {
-	putp(on ? "\x1b[?1000h" : "\x1b[?1000l");
+	fputs(on ? "\x1b[?1000h" : "\x1b[?1000l", stdout); /* xterm mouse mode */
 }
 
 void
 cursormode(int on)
 {
-	putp(on ? "\x1b[?25h" : "\x1b[?25l"); /* DECTCEM (in)Visible cursor */
+	/*fputs(on ? "\x1b[?25h" : "\x1b[?25l", stdout);*/ /* DECTCEM (in)Visible cursor */
+	putp(tparm(on ? cursor_visible : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
+cursormove(int x, int y)
+{
+	/*printf("\x1b[%d;%dH", y + 1, x + 1);*/
+	putp(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
+attrmode(int mode)
+{
+	char *p;
+
+	/*printf("\x1b[%dm", mode);*/
+	switch (mode) {
+	case ATTR_RESET: p = exit_attribute_mode; break;
+	case ATTR_BOLD_ON: p = enter_bold_mode; break;
+	case ATTR_FAINT_ON: p = enter_dim_mode; break;
+	case ATTR_REVERSE_ON: p = enter_standout_mode; break;
+	case ATTR_REVERSE_OFF: p = exit_standout_mode; break;
+	default: return;
+	}
+	putp(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
+cleareol(void)
+{
+	/*fputs("\x1b[K", stdout);*/
+	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
+clearscreen(void)
+{
+	/*fputs("\x1b[H\x1b[2J", stdout);*/
+	putp(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -364,7 +409,7 @@ cleanup(void)
 	tcsetattr(ttyfd, TCSANOW, &tsave);
 
 	cursormode(1);
-	putp(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	clearscreen();
 
 	/* xterm mouse-mode */
 	if (usemouse)
@@ -391,11 +436,16 @@ win_update(struct win *w, int width, int height)
 }
 
 void
-getwinsize(void)
+resizewin(void)
 {
+	/*struct winsize winsz;
 	if (ioctl(ttyfd, TIOCGWINSZ, &winsz) == -1)
 		err(1, "ioctl");
-	win_update(&win, winsz.ws_col, winsz.ws_row);
+	win_update(&win, winsz.ws_col, winsz.ws_row);*/
+
+	setupterm(NULL, 1, NULL);
+	/* termios globals are changed: `lines` and `columns` */
+	win_update(&win, columns, lines);
 	if (win.dirty)
 		alldirty();
 }
@@ -410,10 +460,8 @@ init(void)
 	tcur.c_lflag &= ~(ECHO|ICANON);
 	tcsetattr(ttyfd, TCSANOW, &tcur);
 
-	getwinsize();
+	resizewin();
 
-	setupterm(NULL, 1, NULL);
-	putp(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	cursormode(0);
 
 	/* xterm mouse-mode */
@@ -535,16 +583,16 @@ pane_row_draw(struct pane *p, off_t pos)
 	row = pane_row_get(p, pos);
 
 	y = p->y + (pos % p->height); /* relative position on screen */
-	putp(tparm(cursor_address, y, p->x, 0, 0, 0, 0, 0, 0, 0));
+	cursormove(p->x, y);
 
 	r = 0;
 	if (pos == p->pos) {
-		putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		attrmode(ATTR_REVERSE_ON);
 		if (!p->focused)
-			putp(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+			attrmode(ATTR_FAINT_ON);
 		r = 1;
 	} else if (p->nrows && pos < p->nrows && row && row->bold) {
-		putp(tparm(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		attrmode(ATTR_BOLD_ON);
 		r = 1;
 	}
 	if (row)
@@ -552,7 +600,7 @@ pane_row_draw(struct pane *p, off_t pos)
 	else
 		printf("%-*.*s", p->width, p->width, "");
 	if (r)
-		putp("\x1b[0m");
+		attrmode(ATTR_RESET);
 }
 
 void
@@ -771,19 +819,19 @@ scrollbar_draw(struct scrollbar *s)
 		return;
 
 	if (!s->focused)
-		putp(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		attrmode(ATTR_FAINT_ON);
 	for (y = 0; y < s->size; y++) {
-		putp(tparm(cursor_address, s->y + y, s->x, 0, 0, 0, 0, 0, 0, 0));
+		cursormove(s->x, s->y + y);
 		if (y >= s->tickpos && y < s->tickpos + s->ticksize) {
-			putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+			attrmode(ATTR_REVERSE_ON);
 			fputs(" ", stdout);
-			putp(tparm(exit_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+			attrmode(ATTR_REVERSE_OFF);
 		} else {
-			fputs("\xe2\x94\x82", stdout); /* symbol: "light vertical" */
+			fputs(SCROLLBAR_SYMBOL, stdout);
 		}
 	}
 	if (!s->focused)
-		putp("\x1b[0m");
+		attrmode(ATTR_RESET);
 	s->dirty = 0;
 }
 
@@ -806,15 +854,14 @@ uiprompt(int x, int y, char *fmt, ...)
 	tset.c_lflag |= (ECHO|ICANON);
 	tcsetattr(ttyfd, TCSANOW, &tset);
 
-	putp(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormove(x, y);
+	attrmode(ATTR_REVERSE_ON);
 	fputs(buf, stdout);
-	putp(tparm(exit_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	attrmode(ATTR_REVERSE_OFF);
 
-	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cleareol();
 	cursormode(1);
-	putp(tparm(cursor_address, y, x + colw(buf), 0, 0, 0, 0, 0, 0, 0));
+	cursormove(x + colw(buf), y);
 	fflush(stdout);
 
 	n = 0;
@@ -822,7 +869,6 @@ uiprompt(int x, int y, char *fmt, ...)
 
 	cursormode(0);
 	tcsetattr(ttyfd, TCSANOW, &tcur); /* restore */
-	putp(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
 	fflush(stdout);
 
@@ -842,10 +888,10 @@ statusbar_draw(struct statusbar *s)
 {
 	if (s->hidden || !s->dirty)
 		return;
-	putp(tparm(cursor_address, s->y, s->x, 0, 0, 0, 0, 0, 0, 0));
-	putp(tparm(enter_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	cursormove(s->x, s->y);
+	attrmode(ATTR_REVERSE_ON);
 	printpad(s->text, s->width);
-	putp(tparm(exit_standout_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	attrmode(ATTR_REVERSE_OFF);
 	s->dirty = 0;
 }
 
@@ -1121,7 +1167,7 @@ sighandler(int signo)
 		_exit(128 + signo);
 		break;
 	case SIGWINCH:
-		getwinsize();
+		resizewin();
 		updategeom();
 		draw();
 		break;
@@ -1151,7 +1197,7 @@ draw(void)
 		return;
 
 	if (win.dirty) {
-		putp(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		clearscreen();
 		win.dirty = 0;
 	}
 
