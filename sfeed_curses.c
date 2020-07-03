@@ -835,14 +835,51 @@ scrollbar_draw(struct scrollbar *s)
 }
 
 char *
+lineeditor(void)
+{
+	unsigned char ch;
+	char *input = NULL;
+	size_t cap = 0, nchars = 0;
+	ssize_t n;
+
+	for (;;) {
+		if (nchars + 1 >= cap) {
+			cap = cap ? cap * 2 : 32;
+			input = erealloc(input, cap);
+		}
+
+		n = read(0, &ch, 1);
+		if (n < 0) {
+			free(input);
+			input = NULL;
+		} else if (n == 0 || ch == '\r' || ch == '\n') {
+			input[nchars] = '\0';
+			break;
+		} else if (ch == '\b' || ch == 0x7f) {
+			if (!nchars)
+				continue;
+			input[--nchars] = '\0';
+			ch = '\b'; /* back */
+			write(1, &ch, 1);
+			ch = ' '; /* blank */
+			write(1, &ch, 1);
+			ch = '\b'; /* back */
+			write(1, &ch, 1);
+			continue;
+		} else if (ch >= ' ') {
+			write(1, &ch, 1);
+		}
+		input[nchars++] = ch;
+	}
+	return input;
+}
+
+char *
 uiprompt(int x, int y, char *fmt, ...)
 {
 	va_list ap;
-	char *input = NULL;
-	size_t n;
-	ssize_t r;
+	char *input;
 	char buf[32];
-	struct termios tset;
 
 	va_start(ap, fmt);
 	if (vsnprintf(buf, sizeof(buf), fmt, ap) >= sizeof(buf))
@@ -858,25 +895,9 @@ uiprompt(int x, int y, char *fmt, ...)
 	cursormove(x + colw(buf) + 1, y);
 	fflush(stdout);
 
-	tcgetattr(ttyfd, &tset);
-	tset.c_lflag |= (ECHO|ICANON);
-	tcsetattr(ttyfd, TCSANOW, &tset);
-
-	n = 0;
-	r = getline(&input, &n, stdin);
+	input = lineeditor();
 
 	cursormode(0);
-	tcsetattr(ttyfd, TCSANOW, &tcur); /* restore */
-
-	fflush(stdout);
-
-	if (r < 0) {
-		clearerr(stdin);
-		free(input);
-		input = NULL;
-	} else if (input[r - 1] == '\n') {
-		input[--r] = '\0';
-	}
 
 	return input;
 }
@@ -946,10 +967,7 @@ feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 	offset = 0;
 	for (i = 0; ; i++) {
 		if (i + 1 >= cap) {
-			if (cap == 0)
-				cap = 16;
-			else
-				cap *= 2;
+			cap = cap ? cap * 2 : 16;
 			*items = erealloc(*items, cap * sizeof(struct item));
 		}
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
@@ -1574,8 +1592,7 @@ nextpage:
 				free(search);
 				search = uiprompt(statusbar.x, statusbar.y,
 				                  "Search (%s):", tmp);
-				alldirty();
-				draw();
+				statusbar.dirty = 1;
 			}
 			if (!search)
 				break;
