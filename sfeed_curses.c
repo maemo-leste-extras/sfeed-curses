@@ -124,7 +124,6 @@ static int onlynew = 0; /* show only new in sidebar */
 
 static struct termios tsave; /* terminal state at startup */
 static struct termios tcur;
-static int ttyfd = 0; /* fd of tty */
 static int devnullfd;
 static int needcleanup;
 
@@ -406,7 +405,7 @@ cleanup(void)
 		return;
 
 	/* restore terminal settings */
-	tcsetattr(ttyfd, TCSANOW, &tsave);
+	tcsetattr(0, TCSANOW, &tsave);
 
 	cursormode(1);
 	clearscreen();
@@ -439,7 +438,7 @@ void
 resizewin(void)
 {
 	/*struct winsize winsz;
-	if (ioctl(ttyfd, TIOCGWINSZ, &winsz) == -1)
+	if (ioctl(0, TIOCGWINSZ, &winsz) == -1)
 		err(1, "ioctl");
 	win_update(&win, winsz.ws_col, winsz.ws_row);*/
 
@@ -455,10 +454,10 @@ init(void)
 {
 	struct sigaction sa;
 
-	tcgetattr(ttyfd, &tsave);
+	tcgetattr(0, &tsave);
 	memcpy(&tcur, &tsave, sizeof(tcur));
 	tcur.c_lflag &= ~(ECHO|ICANON);
-	tcsetattr(ttyfd, TCSANOW, &tcur);
+	tcsetattr(0, TCSANOW, &tcur);
 
 	resizewin();
 
@@ -1392,7 +1391,7 @@ readch(void)
 	unsigned char b;
 	ssize_t n;
 
-	n = read(ttyfd, &b, 1);
+	n = read(0, &b, 1);
 	if (n < 0)
 		return EOF;
 	else if (n == -1)
@@ -1411,7 +1410,7 @@ main(int argc, char *argv[])
 	size_t i;
 	char *name, *tmp;
 	char *search = NULL; /* search text */
-	int ch, button, x, y, release; /* mouse button event */
+	int ch, button, fd, x, y, release;
 	off_t off;
 
 	setlocale(LC_CTYPE, "");
@@ -1426,7 +1425,7 @@ main(int argc, char *argv[])
 		nfeeds = 1;
 		f = &feeds[0];
 		f->name = "stdin";
-		if (!(f->fp = fdopen(ttyfd, "rb")))
+		if (!(f->fp = fdopen(0, "rb")))
 			err(1, "fdopen");
 	} else {
 		for (i = 1; i < argc; i++) {
@@ -1441,11 +1440,10 @@ main(int argc, char *argv[])
 	feeds_load(feeds, nfeeds);
 	feeds_set(&feeds[0]);
 
-	if (!isatty(ttyfd)) {
-		close(ttyfd);
-		if ((ttyfd = open("/dev/tty", O_RDONLY)) == -1)
+	if (!isatty(0)) {
+		if ((fd = open("/dev/tty", O_RDONLY)) == -1)
 			err(1, "open: /dev/tty");
-		if (dup2(ttyfd, 0) == -1)
+		if (dup2(fd, 0) == -1)
 			err(1, "dup2: /dev/tty");
 	}
 	if (argc == 1)
