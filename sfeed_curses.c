@@ -860,13 +860,27 @@ scrollbar_draw(struct scrollbar *s)
 	s->dirty = 0;
 }
 
+int
+readch(void)
+{
+	unsigned char b;
+	ssize_t n;
+
+	n = read(0, &b, 1);
+	if (n == 0)
+		return EOF;
+	else if (n == -1)
+		err(1, "read");
+
+	return (int)b;
+}
+
 char *
 lineeditor(void)
 {
-	unsigned char ch;
 	char *input = NULL;
 	size_t cap = 0, nchars = 0;
-	ssize_t n;
+	int ch;
 
 	for (;;) {
 		if (nchars + 1 >= cap) {
@@ -874,11 +888,8 @@ lineeditor(void)
 			input = erealloc(input, cap);
 		}
 
-		n = read(0, &ch, 1);
-		if (n < 0) {
-			free(input);
-			input = NULL;
-		} else if (n == 0 || ch == '\r' || ch == '\n') {
+		ch = readch();
+		if (ch == EOF || ch == '\r' || ch == '\n') {
 			input[nchars] = '\0';
 			break;
 		} else if (ch == '\b' || ch == 0x7f) {
@@ -1432,21 +1443,6 @@ item_row_format(struct pane *p, struct row *row)
 	}
 
 	return text;
-}
-
-int
-readch(void)
-{
-	unsigned char b;
-	ssize_t n;
-
-	n = read(0, &b, 1);
-	if (n == 0)
-		return EOF;
-	else if (n == -1)
-		err(1, "read");
-
-	return (int)b;
 }
 
 int
