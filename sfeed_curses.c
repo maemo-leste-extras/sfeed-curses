@@ -329,7 +329,7 @@ printpad(const char *s, int width)
 void
 resettitle(void)
 {
-	fputs("\x1b""c", stdout); /* reset title and state */
+	fputs("\x1b""c", stdout); /* rs1: reset title and state */
 }
 
 void
@@ -1524,20 +1524,19 @@ main(int argc, char *argv[])
 				if ((ch = readch()) == EOF)
 					goto end;
 				/* button numbers (0 - 2) encoded in lowest 2 bits
-				   release does not indicate which button (so set to 0). */
-				ch -= 32;
+				   release does not indicate which button (so set to 0).
+				   Handle extended buttons like scrollwheels
+				   and side-buttons by substracting 64 in each range. */
+				for (i = 0, ch -= 32; ch >= 64; i += 3)
+					ch -= 64;
 
-				/* extended buttons like scrollwheels */
 				release = 0;
-				if (ch >= 64) {
-					button = ((ch - 64) & 3) + 3;
-				} else {
-					button = ch & 3;
-					if (button == 3) {
-						button = -1;
-						release = 1;
-					}
+				button = (ch & 3) + i;
+				if (!i && button == 3) {
+					release = 1;
+					button = -1;
 				}
+
 				/* X10 mouse-encoding */
 				if ((x = readch()) == EOF)
 					goto end;
