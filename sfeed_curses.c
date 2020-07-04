@@ -346,6 +346,13 @@ updatetitle(void)
 }
 
 void
+appmode(int on)
+{
+	/*fputs(on ? "\x1b[?1049h" : "\x1b[?1049l", stdout);*/ /* smcup, rmcup */
+	putp(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
 mousemode(int on)
 {
 	fputs(on ? "\x1b[?1000h" : "\x1b[?1000l", stdout); /* xterm mouse mode */
@@ -421,6 +428,7 @@ cleanup(void)
 	/* restore terminal settings */
 	tcsetattr(0, TCSANOW, &tsave);
 
+	appmode(0);
 	cursormode(1);
 	clearscreen();
 
@@ -476,13 +484,13 @@ init(void)
 	resizewin();
 
 	cursormode(0);
+	appmode(1);
 
 	/* xterm mouse-mode */
 	if (usemouse)
 		mousemode(usemouse);
 
 	updategeom();
-
 	fflush(stdout);
 
 	sigemptyset(&sa.sa_mask);
