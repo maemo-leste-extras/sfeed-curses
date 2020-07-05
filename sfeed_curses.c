@@ -652,6 +652,7 @@ pane_setpos(struct pane *p, off_t pos)
 		p->pos = pos;
 		pane_row_draw(p, prev); /* draw previous row again */
 		pane_row_draw(p, p->pos); /* draw new highlighted row */
+		fflush(stdout); /* flush and update directly */
 	}
 }
 
