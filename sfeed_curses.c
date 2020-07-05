@@ -640,7 +640,7 @@ pane_setpos(struct pane *p, off_t pos)
 	if (pos >= p->nrows)
 		pos = p->nrows - 1; /* clamp */
 
-	/* is on different screen? mark dirty */
+	/* is on different scroll region? mark dirty */
 	if (((p->pos - (p->pos % p->height)) / p->height) !=
 	    ((pos - (pos % p->height)) / p->height)) {
 		p->pos = pos;
@@ -664,7 +664,7 @@ pane_setstartpos(struct pane *p)
 void
 pane_setendpos(struct pane *p)
 {
-	pane_setpos(p, p->nrows);
+	pane_setpos(p, p->nrows - 1);
 }
 
 void
@@ -688,10 +688,7 @@ pane_scrollpage(struct pane *p, int pages)
 void
 pane_scrolln(struct pane *p, int n)
 {
-	if (n < 0)
-		pane_setpos(p, p->pos + n);
-	else if (n > 0)
-		pane_setpos(p, p->pos + n);
+	pane_setpos(p, p->pos + n);
 }
 
 void
