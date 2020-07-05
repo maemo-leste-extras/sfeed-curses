@@ -1288,7 +1288,7 @@ mousereport(int button, int release, int x, int y)
 	struct row *row;
 	struct item *item;
 	size_t i;
-	int changedpane, pos;
+	int changedpane, dblclick, pos;
 
 	if (!usemouse || release || button == -1)
 		return;
@@ -1306,13 +1306,14 @@ mousereport(int button, int release, int x, int y)
 		selpane = i;
 		/* relative position on screen */
 		pos = y - p->y + p->pos - (p->pos % p->height);
+		dblclick = (pos == p->pos); /* clicking the same row */
 
 		switch (button) {
 		case 0: /* left-click */
 			if (!p->nrows || pos >= p->nrows)
 				break;
+			pane_setpos(p, pos);
 			if (i == PaneFeeds) {
-				pane_setpos(p, pos);
 				row = pane_row_get(p, pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
@@ -1321,21 +1322,18 @@ mousereport(int button, int release, int x, int y)
 				pane_row_draw(p, pos);
 				updatetitle();
 			} else if (i == PaneItems) {
-				/* clicking the same highlighted row */
-				if (p->pos == pos && !changedpane) {
+				if (dblclick && !changedpane) {
 					row = pane_row_get(&panes[PaneItems], pos);
 					item = (struct item *)row->data;
 					plumb(plumber, item->fields[FieldLink]);
-				} else {
-					pane_setpos(p, pos);
 				}
 			}
 			break;
 		case 2: /* right-click */
 			if (!p->nrows || pos >= p->nrows)
 				break;
+			pane_setpos(p, pos);
 			if (i == PaneItems) {
-				pane_setpos(p, pos);
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
@@ -1510,7 +1508,6 @@ main(int argc, char *argv[])
 	updatetitle();
 	updatesidebar(onlynew);
 	init();
-
 	draw();
 
 	while ((ch = readch()) != EOF) {
