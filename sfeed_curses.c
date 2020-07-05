@@ -1346,7 +1346,6 @@ mousereport(int button, int release, int x, int y)
 			pane_scrollpage(p, button == 3 ? -1 : +1);
 			break;
 		}
-		draw();
 	}
 }
 
@@ -1564,7 +1563,7 @@ main(int argc, char *argv[])
 					goto nextpage;
 				continue;
 			}
-			continue;
+			break;
 keyup:
 		case 'k':
 			pane_scrolln(&panes[selpane], -1);
