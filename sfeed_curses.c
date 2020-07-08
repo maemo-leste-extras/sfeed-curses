@@ -47,8 +47,8 @@ struct row {
 };
 
 struct pane {
-	int x; /* absolute x position of the window on the screen */
-	int y; /* absolute y position of the window on the screen */
+	int x; /* absolute x position on the screen */
+	int y; /* absolute y position on the screen */
 	int width; /* absolute width of the window */
 	int height; /* absolute height of the window */
 	off_t pos; /* focused row position */
@@ -66,8 +66,8 @@ struct pane {
 struct scrollbar {
 	int tickpos;
 	int ticksize;
-	int x; /* absolute x position of the window on the screen */
-	int y; /* absolute y position of the window on the screen */
+	int x; /* absolute x position on the screen */
+	int y; /* absolute y position on the screen */
 	int size; /* absolute size of the bar */
 	int focused; /* has focus or not */
 	int hidden; /* is visible or not */
@@ -75,8 +75,8 @@ struct scrollbar {
 };
 
 struct statusbar {
-	int x; /* absolute x position of the window on the screen */
-	int y; /* absolute y position of the window on the screen */
+	int x; /* absolute x position on the screen */
+	int y; /* absolute y position on the screen */
 	int width; /* absolute width of the bar */
 	char *text; /* data */
 	int hidden; /* is visible or not */
@@ -88,7 +88,7 @@ struct statusbar {
 /* feed info */
 struct feed {
 	char         *name;     /* feed name */
-	char         *path;     /* path to feed or NULL from stdin */
+	char         *path;     /* path to feed or NULL for stdin */
 	unsigned long totalnew; /* amount of new items per feed */
 	unsigned long total;    /* total items */
 	FILE *fp;               /* file pointer */
