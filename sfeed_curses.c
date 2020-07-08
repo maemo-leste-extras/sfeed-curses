@@ -1663,7 +1663,6 @@ nextpage:
 		case 'm': /* toggle mouse mode */
 			usemouse = !usemouse;
 			mousemode(usemouse);
-			fflush(stdout);
 			break;
 		case 's': /* toggle sidebar */
 			panes[PaneFeeds].hidden = !panes[PaneFeeds].hidden;
