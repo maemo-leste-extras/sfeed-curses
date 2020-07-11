@@ -525,11 +525,8 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 		}
 
 		errno = 0;
-		if (!(fp = popen(cmd, "w"))) {
-			fputs("popen: ", stderr);
-			perror(NULL);
-			_exit(1);
-		}
+		if (!(fp = popen(cmd, "w")))
+			err(1, "popen");
 		for (i = 0; i < FieldLast; i++) {
 			if (i)
 				fputc('\t', fp);
