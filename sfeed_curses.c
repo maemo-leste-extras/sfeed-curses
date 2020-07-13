@@ -1159,7 +1159,7 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 		}
 
 		/* load first items, because of first selection or stdin. */
-		if (i == 0)
+		if (i == 0 || f == curfeed)
 			feed_load(f, f->fp);
 		else
 			feed_count(f, f->fp);
@@ -1473,7 +1473,6 @@ main(int argc, char *argv[])
 		}
 		nfeeds = argc - 1;
 	}
-	feeds_set(NULL);
 	feeds_load(feeds, nfeeds);
 	feeds_set(&feeds[0]);
 
@@ -1639,10 +1638,7 @@ nextpage:
 		case 'R': /* reload all files */
 			if (nfeeds == 1 && !feeds[0].path)
 				break; /* do not reload when read from stdin */
-			feeds_set(NULL);
 			feeds_load(feeds, nfeeds);
-			feeds_set(&feeds[0]);
-			panes[PaneFeeds].pos = 0;
 			updatesidebar(onlynew);
 			updategeom();
 			updatetitle();
