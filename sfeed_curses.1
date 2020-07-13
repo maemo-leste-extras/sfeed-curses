@@ -1,4 +1,4 @@
-.Dd July 6, 2020
+.Dd July 12, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -124,6 +124,7 @@ By default this is "xdg-open".
 This variable is set by
 .Nm
 when a feed is set or changed.
+If the data is read from stdin this variable is unset.
 It can be used by the plumb or pipe program for scripting purposes.
 .El
 .Sh EXIT STATUS
