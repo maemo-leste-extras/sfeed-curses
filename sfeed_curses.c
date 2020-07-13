@@ -1159,14 +1159,14 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 		}
 
 		/* load first items, because of first selection or stdin. */
-		if (i == 0 || f == curfeed)
+		if (i == 0 || f == curfeed) {
 			feed_load(f, f->fp);
-		else
+		} else {
 			feed_count(f, f->fp);
-
-		if (f->path && f->fp) {
-			fclose(f->fp);
-			f->fp = NULL;
+			if (f->path && f->fp) {
+				fclose(f->fp);
+				f->fp = NULL;
+			}
 		}
 	}
 }
