@@ -1631,8 +1631,7 @@ nextpage:
 				}
 			}
 			break;
-		case 12: /* ^L */
-		case 'r': /* update window dimensions and redraw */
+		case 12: /* ^L, redraw */
 			alldirty();
 			break;
 		case 'R': /* reload all files */
