@@ -1177,7 +1177,7 @@ updatesidebar(int onlynew)
 	struct pane *p;
 	struct row *row;
 	struct feed *feed;
-	size_t i;
+	size_t i, nrows;
 	int len, width;
 
 	p = &panes[PaneFeeds];
@@ -1185,13 +1185,12 @@ updatesidebar(int onlynew)
 	if (!p->rows)
 		p->rows = ecalloc(sizeof(p->rows[0]), nfeeds + 1);
 
-	p->nrows = 0;
-	p->width = 0;
+	nrows = 0;
 	width = 0;
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
 
-		row = &(p->rows[p->nrows]);
+		row = &(p->rows[nrows]);
 		row->text = ""; /* custom formatter is used */
 		row->bold = (feed->totalnew > 0);
 		row->data = feed;
@@ -1203,8 +1202,9 @@ updatesidebar(int onlynew)
 		if (onlynew && feed->totalnew == 0)
 			continue;
 
-		p->nrows++;
+		nrows++;
 	}
+	p->nrows = nrows;
 	p->width = width;
 	p->dirty = 1;
 }
