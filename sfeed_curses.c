@@ -1638,8 +1638,6 @@ nextpage:
 			alldirty();
 			break;
 		case 'R': /* reload all files */
-			if (nfeeds == 1 && !feeds[0].path)
-				break; /* do not reload when read from stdin */
 			feeds_load(feeds, nfeeds);
 			updatesidebar(onlynew);
 			updategeom();
