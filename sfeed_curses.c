@@ -1157,6 +1157,8 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 					err(1, "fopen: %s", f->path);
 			}
 		}
+		if (!f->fp)
+			continue;
 
 		/* load first items, because of first selection or stdin. */
 		if (i == 0 || f == curfeed) {
@@ -1314,7 +1316,8 @@ mousereport(int button, int release, int x, int y)
 				row = pane_row_get(p, pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
-				feed_load(f, f->fp);
+				if (f->fp)
+					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
 				pane_row_draw(p, pos);
 				updatetitle();
@@ -1674,7 +1677,8 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
-				feed_load(f, f->fp);
+				if (f->fp)
+					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
 				pane_row_draw(p, p->pos);
 				updatetitle();
