@@ -1061,7 +1061,7 @@ feed_load(struct feed *f, FILE *fp)
 	p->nrows = 0;
 
 	if (feed_getitems(f, fp, &items, &nitems) == -1)
-		err(1, "%s: %s", __func__, f->path);
+		err(1, "%s: %s", __func__, f->name);
 
 	f->totalnew = 0;
 	f->total = nitems;
