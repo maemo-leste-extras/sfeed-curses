@@ -1319,7 +1319,8 @@ mousereport(int button, int release, int x, int y)
 				if (f->fp)
 					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
-				pane_row_draw(p, pos);
+				updatesidebar(onlynew);
+				updategeom();
 				updatetitle();
 			} else if (i == PaneItems) {
 				if (dblclick && !changedpane) {
@@ -1678,7 +1679,8 @@ nextpage:
 				if (f->fp)
 					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
-				pane_row_draw(p, p->pos);
+				updatesidebar(onlynew);
+				updategeom();
 				updatetitle();
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
