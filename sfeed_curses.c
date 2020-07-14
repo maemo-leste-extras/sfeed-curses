@@ -1090,6 +1090,7 @@ feed_count(struct feed *f, FILE *fp)
 	ssize_t linelen;
 	time_t parsedtime;
 
+	f->totalnew = f->total = 0;
 	while ((linelen = getline(&line, &linesize, fp)) > 0) {
 		if (line[linelen - 1] == '\n')
 			line[--linelen] = '\0';
@@ -1146,7 +1147,6 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 
 	for (i = 0; i < nfeeds; i++) {
 		f = &feeds[i];
-		f->totalnew = f->total = 0;
 
 		if (f->path) {
 			if (f->fp) {
