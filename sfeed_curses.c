@@ -1396,7 +1396,7 @@ item_row_get(struct pane *p, off_t pos)
 	item = (struct item *)itemrow->data;
 
 	f = curfeed;
-	if (f && f->path && !item->line) {
+	if (f && f->path && f->fp && !item->line) {
 		if (fseek(f->fp, item->offset, SEEK_SET))
 			err(1, "fseek: %s", f->path);
 		linelen = getline(&line, &linesize, f->fp);
