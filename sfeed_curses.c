@@ -1639,7 +1639,10 @@ nextpage:
 			alldirty();
 			break;
 		case 'R': /* reload all files */
+			off = panes[PaneItems].pos; /* store numeric position */
 			feeds_load(feeds, nfeeds);
+			/* restore numeric position */
+			pane_setpos(&panes[PaneItems], off);
 			updatesidebar(onlynew);
 			updategeom();
 			updatetitle();
