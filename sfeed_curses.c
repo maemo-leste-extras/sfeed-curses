@@ -983,6 +983,7 @@ linetoitem(char *line, struct item *item)
 	char *fields[FieldLast];
 	time_t parsedtime;
 
+	item->line = line;
 	parseline(line, fields);
 
 	parsedtime = 0;
@@ -994,8 +995,7 @@ linetoitem(char *line, struct item *item)
 		item->timeok = 0;
 	}
 
-	item->line = line;
-	item->isnew = (parsedtime >= comparetime);
+	item->isnew = (item->timeok && parsedtime >= comparetime);
 	memcpy(item->fields, fields, sizeof(fields));
 
 	return 0;
