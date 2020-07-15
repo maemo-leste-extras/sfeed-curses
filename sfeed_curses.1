@@ -1,4 +1,4 @@
-.Dd July 12, 2020
+.Dd July 15, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -96,7 +96,7 @@ The used command to yank the url is "cut -f 3 | xclip -r".
 Pipe the TAB-Separated Value for yanking the enclosure.
 The used command to yank the enclosure is "cut -f 8 | xclip -r".
 .It q, EOF
-quit
+Quit
 .El
 .Sh MOUSE ACTIONS
 When mouse-mode is enabled the below actions are available.
@@ -111,6 +111,15 @@ Items pane: plumb clicked item.
 Scroll 1 page up.
 .It scroll down
 Scroll 1 page down.
+.El
+.Sh SIGNALS
+.Bl -tag -width Ds
+.It SIGHUP
+Reload all feed files as specified on startup when not read from stdin.
+.It SIGINT, SIGTERM
+Quit
+.It SIGWINCH
+Resize the pane dimensions relative to the terminal size.
 .El
 .Sh ENVIRONMENT VARIABLES
 .Bl -tag -width Ds

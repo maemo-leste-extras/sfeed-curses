@@ -499,6 +499,7 @@ init(void)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = sighandler;
+	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGWINCH, &sa, NULL);
@@ -1187,6 +1188,20 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 }
 
 void
+feeds_reloadall(void)
+{
+	off_t pos;
+
+	pos = panes[PaneItems].pos; /* store numeric position */
+	feeds_load(feeds, nfeeds);
+	/* restore numeric position */
+	pane_setpos(&panes[PaneItems], pos);
+	updatesidebar(onlynew);
+	updategeom();
+	updatetitle();
+}
+
+void
 updatesidebar(int onlynew)
 {
 	struct pane *p;
@@ -1228,6 +1243,7 @@ void
 sighandler(int signo)
 {
 	switch (signo) {
+	case SIGHUP:
 	case SIGINT:
 	case SIGTERM:
 	case SIGWINCH:
@@ -1659,13 +1675,7 @@ nextpage:
 			alldirty();
 			break;
 		case 'R': /* reload all files */
-			off = panes[PaneItems].pos; /* store numeric position */
-			feeds_load(feeds, nfeeds);
-			/* restore numeric position */
-			pane_setpos(&panes[PaneItems], off);
-			updatesidebar(onlynew);
-			updategeom();
-			updatetitle();
+			feeds_reloadall();
 			break;
 		case 'a': /* attachment */
 		case 'e': /* enclosure */
@@ -1737,6 +1747,10 @@ event:
 
 		/* handle last signal */
 		switch (sigstate) {
+		case SIGHUP:
+			feeds_reloadall();
+			sigstate = 0;
+			break;
 		case SIGINT:
 		case SIGTERM:
 			cleanup();
