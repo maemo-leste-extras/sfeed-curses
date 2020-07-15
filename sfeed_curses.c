@@ -1,3 +1,4 @@
+#include <sys/select.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -131,6 +132,8 @@ static struct feed *feeds;
 static struct feed *curfeed;
 static size_t nfeeds; /* amount of feeds */
 static time_t comparetime;
+
+volatile sig_atomic_t sigstate = 0;
 
 /* config */
 
@@ -859,15 +862,23 @@ int
 readch(void)
 {
 	unsigned char b;
-	ssize_t n;
+	fd_set readfds;
 
-	n = read(0, &b, 1);
-	if (n == 0)
-		return EOF;
-	else if (n == -1)
-		err(1, "read");
+	for (;;) {
+		FD_ZERO(&readfds);
+		FD_SET(0, &readfds);
+		if (select(1, &readfds, NULL, NULL, NULL) == -1) {
+			if (errno != EINTR)
+				err(1, "select");
+			return -2; /* EINTR: like a signal */
+		}
 
-	return (int)b;
+		switch (read(0, &b, 1)) {
+		case -1: err(1, "read");
+		case 0: return EOF;
+		default: return (int)b;
+		}
+	}
 }
 
 char *
@@ -900,6 +911,8 @@ lineeditor(void)
 			continue;
 		} else if (ch >= ' ') {
 			write(1, &ch, 1);
+		} else if (ch < 0) {
+			continue; /* process signals later */
 		}
 		input[nchars++] = ch;
 	}
@@ -1217,13 +1230,8 @@ sighandler(int signo)
 	switch (signo) {
 	case SIGINT:
 	case SIGTERM:
-		cleanup();
-		_exit(128 + signo);
-		break;
 	case SIGWINCH:
-		resizewin();
-		updategeom();
-		draw();
+		sigstate = signo;
 		break;
 	}
 }
@@ -1510,17 +1518,21 @@ main(int argc, char *argv[])
 	init();
 	draw();
 
-	while ((ch = readch()) != EOF) {
+	while (1) {
+		if ((ch = readch()) < 0)
+			goto event;
 		switch (ch) {
 		case '\x1b':
-			ch = readch();
+			if ((ch = readch()) < 0)
+				goto event;
 			if (ch != '[' && ch != 'O')
 				continue; /* unhandled */
-			switch ((ch = readch())) {
-			case EOF: goto end;
+			if ((ch = readch()) < 0)
+				goto event;
+			switch (ch) {
 			case 'M': /* reported mouse event */
-				if ((ch = readch()) == EOF)
-					goto end;
+				if ((ch = readch()) < 0)
+					goto event;
 				/* button numbers (0 - 2) encoded in lowest 2 bits
 				   release does not indicate which button (so set to 0).
 				   Handle extended buttons like scrollwheels
@@ -1536,10 +1548,12 @@ main(int argc, char *argv[])
 				}
 
 				/* X10 mouse-encoding */
-				if ((x = readch()) == EOF)
-					goto end;
-				if ((y = readch()) == EOF)
-					goto end;
+				if ((ch = readch()) < 0)
+					goto event;
+				x = ch;
+				if ((ch = readch()) < 0)
+					goto event;
+				y = ch;
 				mousereport(button, release, x - 33, y - 33);
 				break;
 			case 'A': goto keyup;    /* arrow up */
@@ -1549,15 +1563,21 @@ main(int argc, char *argv[])
 			case 'F': goto endpos;   /* end */
 			case 'H': goto startpos; /* home */
 			case '4': /* end */
-				if ((ch = readch()) == '~')
+				if ((ch = readch()) < 0)
+					goto event;
+				if (ch == '~')
 					goto endpos;
 				continue;
 			case '5': /* page up */
-				if ((ch = readch()) == '~')
+				if ((ch = readch()) < 0)
+					goto event;
+				if (ch == '~')
 					goto prevpage;
 				continue;
 			case '6': /* page down */
-				if ((ch = readch()) == '~')
+				if ((ch = readch()) < 0)
+					goto event;
+				if (ch == '~')
 					goto nextpage;
 				continue;
 			}
@@ -1711,6 +1731,23 @@ nextpage:
 		case 4: /* EOT */
 		case 'q': goto end;
 		}
+event:
+		if (ch == EOF)
+			goto end;
+
+		/* handle last signal */
+		switch (sigstate) {
+		case SIGINT:
+		case SIGTERM:
+			cleanup();
+			_exit(128 + sigstate);
+		case SIGWINCH:
+			resizewin();
+			updategeom();
+			sigstate = 0;
+			break;
+		}
+
 		draw();
 	}
 end:
