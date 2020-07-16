@@ -514,7 +514,7 @@ void
 pipeitem(const char *cmd, struct item *item, int wantoutput)
 {
 	FILE *fp;
-	int i, pid, wpid;
+	int i, pid, wpid, status;
 
 	if (wantoutput)
 		cleanup();
@@ -537,7 +537,9 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 			fputs(item->fields[i], fp);
 		}
 		fputc('\n', fp);
-		_exit(pclose(fp));
+		status = pclose(fp);
+		status = WIFEXITED(status) ? WEXITSTATUS(status) : 127;
+		_exit(status);
 		break;
 	default:
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
