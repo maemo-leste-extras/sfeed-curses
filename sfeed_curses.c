@@ -571,7 +571,7 @@ plumb(const char *cmd, char *url)
 struct row *
 pane_row_get(struct pane *p, off_t pos)
 {
-	if (pos >= p->nrows)
+	if (pos < 0 || pos >= p->nrows)
 		return NULL;
 
 	if (p->row_get)
