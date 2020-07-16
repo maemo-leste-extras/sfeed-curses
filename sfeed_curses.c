@@ -140,7 +140,7 @@ volatile sig_atomic_t sigstate = 0;
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
    feed is changed while having the UI open (and offsets are changed). */
-static int lazyload = 0;
+/*#define LAZYLOAD 1 */
 
 static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
 static char *piper = "less"; /* environment variable: $SFEED_PIPER */
@@ -1028,7 +1028,8 @@ feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 			if (line[linelen - 1] == '\n')
 				line[--linelen] = '\0';
 
-			if (lazyload && f->path) {
+#ifdef LAZYLOAD
+			if (f->path) {
 				linetoitem(line, item);
 
 				/* data is ignored here, will be lazy-loaded later. */
@@ -1037,6 +1038,9 @@ feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 			} else {
 				linetoitem(estrdup(line), item);
 			}
+#else
+			linetoitem(estrdup(line), item);
+#endif
 
 			(*nitems)++;
 		}
