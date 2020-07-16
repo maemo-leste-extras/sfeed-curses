@@ -1117,7 +1117,7 @@ feed_load(struct feed *f, FILE *fp)
 	for (i = 0; i < nitems; i++) {
 		row = &(p->rows[i]); /* do not use pane_row_get */
 		row->text = ""; /* custom formatter */
-		row->data = &(items[i]);
+		row->data = &items[i];
 	}
 
 	updatenewitems(f);
