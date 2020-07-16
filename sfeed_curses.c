@@ -518,10 +518,10 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 
 	if (wantoutput)
 		cleanup();
+
 	switch ((pid = fork())) {
 	case -1:
 		err(1, "fork");
-		return;
 	case 0:
 		if (!wantoutput) {
 			dup2(devnullfd, 1);
@@ -540,16 +540,15 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 		status = pclose(fp);
 		status = WIFEXITED(status) ? WEXITSTATUS(status) : 127;
 		_exit(status);
-		break;
 	default:
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
 			;
-	}
 
-	if (wantoutput) {
-		updatesidebar(onlynew);
-		updatetitle();
-		init();
+		if (wantoutput) {
+			updatesidebar(onlynew);
+			updatetitle();
+			init();
+		}
 	}
 }
 
@@ -559,7 +558,6 @@ plumb(const char *cmd, char *url)
 	switch (fork()) {
 	case -1:
 		err(1, "fork");
-		return;
 	case 0:
 		dup2(devnullfd, 1);
 		dup2(devnullfd, 2);
