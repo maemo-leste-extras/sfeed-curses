@@ -987,6 +987,7 @@ linetoitem(char *line, struct item *item)
 
 	item->line = line;
 	parseline(line, fields);
+	memcpy(item->fields, fields, sizeof(fields));
 
 	parsedtime = 0;
 	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
@@ -996,9 +997,6 @@ linetoitem(char *line, struct item *item)
 		item->timestamp = 0;
 		item->timeok = 0;
 	}
-
-	item->isnew = (item->timeok && parsedtime >= comparetime);
-	memcpy(item->fields, fields, sizeof(fields));
 
 	return 0;
 }
