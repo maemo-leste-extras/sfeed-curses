@@ -1065,7 +1065,7 @@ updatenewitems(struct feed *f)
 	p = &panes[PaneItems];
 	f->totalnew = 0;
 	for (i = 0; i < p->nrows; i++) {
-		row = pane_row_get(p, i);
+		row = &(p->rows[i]); /* do not use pane_row_get */
 		item = (struct item *)row->data;
 		item->isnew = (item->timeok && item->timestamp >= comparetime);
 		row->bold = item->isnew;
@@ -1101,7 +1101,7 @@ feed_load(struct feed *f, FILE *fp)
 	p->nrows = nitems;
 	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
 	for (i = 0; i < nitems; i++) {
-		row = &(p->rows[i]);
+		row = &(p->rows[i]); /* do not use pane_row_get */
 		row->text = ""; /* custom formatter */
 		row->data = &(items[i]);
 	}
