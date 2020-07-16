@@ -17,6 +17,7 @@ SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
 #SFEED_LDFLAGS = ${LDFLAGS} -lncurses
 
 BIN = sfeed_curses
+SCRIPTS =
 
 SRC = ${BIN:=.c}
 
@@ -43,7 +44,7 @@ ${OBJ}:
 dist:
 	rm -rf "${NAME}-${VERSION}"
 	mkdir -p "${NAME}-${VERSION}"
-	cp -f ${MAN1} ${DOC} ${SRC} Makefile \
+	cp -f ${MAN1} ${DOC} ${SRC} ${SCRIPTS} Makefile \
 		"${NAME}-${VERSION}"
 	# make tarball
 	tar cf - "${NAME}-${VERSION}" | \
