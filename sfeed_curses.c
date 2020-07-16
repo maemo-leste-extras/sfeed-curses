@@ -1055,6 +1055,26 @@ err:
 }
 
 void
+updatenewitems(struct feed *f)
+{
+	struct pane *p;
+	struct row *row;
+	struct item *item;
+	size_t i;
+
+	p = &panes[PaneItems];
+	f->totalnew = 0;
+	for (i = 0; i < p->nrows; i++) {
+		row = pane_row_get(p, i);
+		item = (struct item *)row->data;
+		item->isnew = (item->timeok && item->timestamp >= comparetime);
+		row->bold = item->isnew;
+		f->totalnew += item->isnew;
+	}
+	f->total = p->nrows;
+}
+
+void
 feed_load(struct feed *f, FILE *fp)
 {
 	static struct item *items = NULL;
@@ -1077,20 +1097,17 @@ feed_load(struct feed *f, FILE *fp)
 	if (feed_getitems(f, fp, &items, &nitems) == -1)
 		err(1, "%s: %s", __func__, f->name);
 
-	f->totalnew = 0;
-	f->total = nitems;
-	for (i = 0; i < nitems; i++)
-		f->totalnew += items[i].isnew;
-
 	p->pos = 0;
 	p->nrows = nitems;
 	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
 	for (i = 0; i < nitems; i++) {
 		row = &(p->rows[i]);
 		row->text = ""; /* custom formatter */
-		row->bold = items[i].isnew;
-		row->data = &items[i];
+		row->data = &(items[i]);
 	}
+
+	updatenewitems(f);
+
 	p->dirty = 1;
 	scrollbars[PaneItems].dirty = 1;
 }
@@ -1171,8 +1188,12 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 					err(1, "fopen: %s", f->path);
 			}
 		}
-		if (!f->fp)
+		if (!f->fp) {
+			/* reading from stdin, just recount new */
+			if (f == curfeed)
+				updatenewitems(f);
 			continue;
+		}
 
 		/* load first items, because of first selection or stdin. */
 		if (i == 0 || f == curfeed) {
@@ -1489,6 +1510,11 @@ main(int argc, char *argv[])
 	if ((tmp = getenv("SFEED_PIPER")))
 		piper = tmp;
 
+	panes[PaneFeeds].row_format = feed_row_format;
+	panes[PaneFeeds].row_match = feed_row_match;
+	panes[PaneItems].row_format = item_row_format;
+	panes[PaneItems].row_get = item_row_get;
+
 	feeds = ecalloc(argc, sizeof(struct feed));
 	if (argc == 1) {
 		nfeeds = 1;
@@ -1516,11 +1542,6 @@ main(int argc, char *argv[])
 	}
 	if (argc == 1)
 		feeds[0].fp = NULL;
-
-	panes[PaneFeeds].row_format = feed_row_format;
-	panes[PaneFeeds].row_match = feed_row_match;
-	panes[PaneItems].row_format = item_row_format;
-	panes[PaneItems].row_get = item_row_get;
 
 	if (argc > 1) {
 		panes[PaneFeeds].hidden = 0;
