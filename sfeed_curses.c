@@ -632,14 +632,14 @@ pane_setpos(struct pane *p, off_t pos)
 {
 	off_t prev;
 
-	if (pos == p->pos)
-		return; /* no change */
-	if (!p->nrows)
-		return; /* invalid */
 	if (pos < 0)
 		pos = 0; /* clamp */
+	if (!p->nrows)
+		return; /* invalid */
 	if (pos >= p->nrows)
 		pos = p->nrows - 1; /* clamp */
+	if (pos == p->pos)
+		return; /* no change */
 
 	/* is on different scroll region? mark dirty */
 	if (((p->pos - (p->pos % p->height)) / p->height) !=
@@ -1236,6 +1236,10 @@ updatesidebar(int onlynew)
 	}
 	p->nrows = nrows;
 	p->width = width;
+	if (!p->nrows)
+		p->pos = 0;
+	else if (p->pos >= p->nrows)
+		p->pos = p->nrows - 1;
 	p->dirty = 1;
 }
 
