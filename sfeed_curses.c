@@ -96,12 +96,13 @@ struct feed {
 };
 
 struct item {
+	char *link; /* separate link field (always loaded) */
 	char *fields[FieldLast];
 	char *line; /* allocated split line */
 	time_t timestamp;
 	int timeok;
 	int isnew;
-	off_t offset; /* line offset in file */
+	off_t offset; /* line offset in file for lazyload */
 };
 
 #undef err
@@ -110,7 +111,10 @@ void err(int, const char *, ...);
 void alldirty(void);
 void cleanup(void);
 void draw(void);
+int isurlnew(const char *);
+void markread(struct pane *, off_t, off_t, int);
 void pane_draw(struct pane *);
+void readurls(void);
 void sighandler(int);
 void updategeom(void);
 void updatesidebar(int);
@@ -132,6 +136,8 @@ static struct feed *feeds;
 static struct feed *curfeed;
 static size_t nfeeds; /* amount of feeds */
 static time_t comparetime;
+static char *urlfile, **urls;
+static size_t nurls;
 
 volatile sig_atomic_t sigstate = 0;
 
@@ -986,6 +992,7 @@ linetoitem(char *line, struct item *item)
 	item->line = line;
 	parseline(line, fields);
 	memcpy(item->fields, fields, sizeof(fields));
+	item->link = estrdup(fields[FieldLink]);
 
 	parsedtime = 0;
 	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
@@ -1069,7 +1076,10 @@ updatenewitems(struct feed *f)
 	for (i = 0; i < p->nrows; i++) {
 		row = &(p->rows[i]); /* do not use pane_row_get */
 		item = (struct item *)row->data;
-		item->isnew = (item->timeok && item->timestamp >= comparetime);
+		if (urlfile)
+			item->isnew = isurlnew(item->link);
+		else
+			item->isnew = (item->timeok && item->timestamp >= comparetime);
 		row->bold = item->isnew;
 		f->totalnew += item->isnew;
 	}
@@ -1085,8 +1095,10 @@ feed_load(struct feed *f, FILE *fp)
 	struct row *row;
 	size_t i;
 
-	for (i = 0; i < nitems; i++)
+	for (i = 0; i < nitems; i++) {
 		free(items[i].line);
+		free(items[i].link);
+	}
 	free(items);
 	items = NULL;
 	nitems = 0;
@@ -1129,9 +1141,13 @@ feed_count(struct feed *f, FILE *fp)
 			line[--linelen] = '\0';
 		parseline(line, fields);
 
-		parsedtime = 0;
-		if (!strtotime(fields[FieldUnixTimestamp], &parsedtime))
-			f->totalnew += (parsedtime >= comparetime);
+		if (urlfile) {
+			f->totalnew += isurlnew(fields[FieldLink]);
+		} else {
+			parsedtime = 0;
+			if (!strtotime(fields[FieldUnixTimestamp], &parsedtime))
+				f->totalnew += (parsedtime >= comparetime);
+		}
 		f->total++;
 	}
 	free(line);
@@ -1216,6 +1232,7 @@ feeds_reloadall(void)
 	off_t pos;
 
 	pos = panes[PaneItems].pos; /* store numeric position */
+	readurls();
 	feeds_load(feeds, nfeeds);
 	/* restore numeric position */
 	pane_setpos(&panes[PaneItems], pos);
@@ -1310,7 +1327,7 @@ draw(void)
 	if (panes[PaneItems].nrows &&
 	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
-		statusbar_update(&statusbar, item->fields[FieldLink]);
+		statusbar_update(&statusbar, item->link);
 	} else {
 		statusbar_update(&statusbar, "");
 	}
@@ -1377,6 +1394,7 @@ mousereport(int button, int release, int x, int y)
 				if (dblclick && !changedpane) {
 					row = pane_row_get(&panes[PaneItems], pos);
 					item = (struct item *)row->data;
+					markread(p, p->pos, p->pos, 1);
 					plumb(plumber, item->fields[FieldLink]);
 				}
 			}
@@ -1389,6 +1407,7 @@ mousereport(int button, int release, int x, int y)
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
+				markread(p, p->pos, p->pos, 1);
 				pipeitem(piper, item, 1);
 			}
 			break;
@@ -1492,6 +1511,114 @@ item_row_format(struct pane *p, struct row *row)
 	return text;
 }
 
+void
+markread(struct pane *p, off_t from, off_t to, int isread)
+{
+	struct row *row;
+	struct item *item;
+	FILE *fp;
+	off_t i;
+	const char *cmd;
+	int isnew = !isread, pid, wpid, status;
+
+	if (!urlfile || !p->nrows)
+		return;
+
+	if (isread) {
+		if (!(cmd = getenv("SFEED_MARK_READ")))
+			cmd = "sfeed_markread read";
+	} else {
+		if (!(cmd = getenv("SFEED_MARK_UNREAD")))
+			cmd = "sfeed_markread unread";
+	}
+
+	switch ((pid = fork())) {
+	case -1:
+		err(1, "fork");
+	case 0:
+		dup2(devnullfd, 1);
+		dup2(devnullfd, 2);
+
+		errno = 0;
+		if (!(fp = popen(cmd, "w")))
+			err(1, "popen");
+
+		for (i = from; i <= to; i++) {
+			row = &(p->rows[i]);
+			item = (struct item *)row->data;
+			if (item->isnew != isnew) {
+				fputs(item->link, fp);
+				fputc('\n', fp);
+			}
+		}
+		status = pclose(fp);
+		status = WIFEXITED(status) ? WEXITSTATUS(status) : 127;
+		_exit(status);
+	default:
+		while ((wpid = wait(&status)) >= 0 && wpid != pid)
+			;
+
+		/* fail: exit statuscode was non-zero */
+		if (status)
+			break;
+		for (i = from; i <= to && i < p->nrows; i++) {
+			row = &(p->rows[i]);
+			item = (struct item *)row->data;
+			if (item->isnew != isnew) {
+				row->bold = item->isnew = isnew;
+				curfeed->totalnew += isnew ? 1 : -1;
+			}
+		}
+		updatesidebar(onlynew);
+		updategeom();
+		updatetitle();
+	}
+}
+
+int
+urlcmp(const void *v1, const void *v2)
+{
+	return strcmp(*((char **)v1), *((char **)v2));
+}
+
+void
+readurls(void)
+{
+	FILE *fp;
+	char *line = NULL;
+	size_t linesiz = 0, cap = 0;
+	ssize_t n;
+
+	while (nurls > 0)
+		free(urls[--nurls]);
+	free(urls);
+	urls = NULL;
+	nurls = 0;
+
+	if (!urlfile || !(fp = fopen(urlfile, "rb")))
+		return;
+
+	while ((n = getline(&line, &linesiz, fp)) > 0) {
+		if (line[n - 1] == '\n')
+			line[--n] = '\0';
+		if (nurls + 1 >= cap) {
+			cap = cap ? cap * 2 : 16;
+			urls = erealloc(urls, cap * sizeof(char *));
+		}
+		urls[nurls++] = estrdup(line);
+	}
+	fclose(fp);
+	free(line);
+
+	qsort(urls, nurls, sizeof(char *), urlcmp);
+}
+
+int
+isurlnew(const char *url)
+{
+	return bsearch(&url, urls, nurls, sizeof(char *), urlcmp) == NULL;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1511,6 +1638,7 @@ main(int argc, char *argv[])
 		plumber = tmp;
 	if ((tmp = getenv("SFEED_PIPER")))
 		piper = tmp;
+	urlfile = getenv("SFEED_URL_FILE");
 
 	panes[PaneFeeds].row_format = feed_row_format;
 	panes[PaneFeeds].row_match = feed_row_match;
@@ -1533,6 +1661,7 @@ main(int argc, char *argv[])
 		}
 		nfeeds = argc - 1;
 	}
+	readurls();
 	feeds_load(feeds, nfeeds);
 	feeds_set(&feeds[0]);
 
@@ -1746,7 +1875,8 @@ nextpage:
 				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				plumb(plumber, item->fields[FieldLink]);
+				markread(p, p->pos, p->pos, 1);
+				plumb(plumber, item->link);
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
@@ -1761,8 +1891,25 @@ nextpage:
 				switch (ch) {
 				case 'y': pipeitem("cut -f 3 | xclip -r", item, 0); break;
 				case 'E': pipeitem("cut -f 8 | xclip -r", item, 0); break;
-				default:  pipeitem(piper, item, 1); break;
+				default:
+					markread(p, p->pos, p->pos, 1);
+					pipeitem(piper, item, 1);
+					break;
 				}
+			}
+			break;
+		case 'f': /* mark all read */
+		case 'F': /* mark all unread */
+			if (panes[PaneItems].nrows) {
+				p = &panes[PaneItems];
+				markread(p, 0, p->nrows - 1, ch == 'f');
+			}
+			break;
+		case 'r': /* mark item as read */
+		case 'u': /* mark item as unread */
+			if (selpane == PaneItems && panes[PaneItems].nrows) {
+				p = &panes[PaneItems];
+				markread(p, p->pos, p->pos, ch == 'r');
 			}
 			break;
 		case 4: /* EOT */

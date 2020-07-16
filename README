@@ -28,6 +28,16 @@ Like the format programs included in sfeed you can run it like this:
 
 	sfeed_curses < ~/.sfeed/feeds/xkcd
 
+By default sfeed_curses marks the items of the last day as new/bold. To manage
+read/unread items in a different way a plain-text file with a list of the read
+urls can be used. To enable this behaviour the path to this file can be
+specified by setting the environment variable $SFEED_URL_FILE to the url file:
+
+	SFEED_URL_FILE=~/.sfeed/urls sfeed_curses ~/.sfeed/feeds/*
+
+There is an shellscript "sfeed_markread" to process the read and unread items.
+See the man page for more detailed information.
+
 
 Dependencies
 ------------
@@ -50,6 +60,7 @@ Run-time dependencies
 - A (POSIX) shell.
 - A terminal (emulator) supporting UTF-8 and more modern capabilities.
 - xclip for yanking the url or enclosure: can be changed easily.
+- awk, used by the sfeed_markread script (optional).
 
 
 OS tested

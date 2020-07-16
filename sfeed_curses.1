@@ -1,4 +1,4 @@
-.Dd July 15, 2020
+.Dd July 16, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -95,6 +95,26 @@ The used command to yank the url is "cut -f 3 | xclip -r".
 .It E
 Pipe the TAB-Separated Value for yanking the enclosure.
 The used command to yank the enclosure is "cut -f 8 | xclip -r".
+.It r
+Mark item as read.
+This will only work when
+.Ev SFEED_URL_FILE
+is set.
+.It u
+Mark item as unread.
+This will only work when
+.Ev SFEED_URL_FILE
+is set.
+.It f
+Mark all items of the current loaded feed as read.
+This will only work when
+.Ev SFEED_URL_FILE
+is set.
+.It F
+Mark all items of the current loaded feed as unread.
+This will only work when
+.Ev SFEED_URL_FILE
+is set.
 .It q, EOF
 Quit
 .El
@@ -129,6 +149,26 @@ By default this is "less".
 .It Ev SFEED_PLUMBER
 A program that received the url or enclosure url as a parameter.
 By default this is "xdg-open".
+.It Ev SFEED_URL_FILE
+If this variable is set this file will be used if an item is new/unread or
+read, instead of checking the timestamp, which is the default.
+The format is a plain-text file with a list of read urls, one url per line.
+This url is matched on the link field as specified in
+.Xr sfeed 5 .
+.It Ev SFEED_MARK_READ
+A program to mark items as read if
+.Ev SFEED_URL_FILE
+is also set, if unset the program used is "sfeed_markread read".
+The marked items are piped to the program.
+The program is expected to merge items in a safe/transactional manner.
+The program should return the exit status 0 on succeed or non-zero on failure.
+.It Ev SFEED_MARK_UNREAD
+A program to mark items as unread if
+.Ev SFEED_URL_FILE
+is also set, if unset the program used is "sfeed_markread unread".
+The marked items are piped to the program.
+The program is expected to merge items in a safe/transactional manner.
+The program should return the exit status 0 on succeed or non-zero on failure.
 .It Ev SFEED_FEED_PATH
 This variable is set by
 .Nm
