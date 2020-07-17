@@ -1123,7 +1123,6 @@ feed_load(struct feed *f, FILE *fp)
 	updatenewitems(f);
 
 	p->dirty = 1;
-	scrollbars[PaneItems].dirty = 1;
 }
 
 void
@@ -1237,7 +1236,6 @@ feeds_reloadall(void)
 	/* restore numeric position */
 	pane_setpos(&panes[PaneItems], pos);
 	updatesidebar(onlynew);
-	updategeom();
 	updatetitle();
 }
 
@@ -1274,13 +1272,19 @@ updatesidebar(int onlynew)
 
 		nrows++;
 	}
+
+	if (p->width != width) {
+		for (i = 0; i < PaneLast; i++)
+			panes[i].dirty = 1;
+	} else {
+		p->dirty = 1;
+	}
 	p->nrows = nrows;
 	p->width = width;
 	if (!p->nrows)
 		p->pos = 0;
 	else if (p->pos >= p->nrows)
 		p->pos = p->nrows - 1;
-	p->dirty = 1;
 }
 
 void
@@ -1388,7 +1392,6 @@ mousereport(int button, int release, int x, int y)
 					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
-				updategeom();
 				updatetitle();
 			} else if (i == PaneItems) {
 				if (dblclick && !changedpane) {
@@ -1570,7 +1573,6 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			}
 		}
 		updatesidebar(onlynew);
-		updategeom();
 		updatetitle();
 	}
 }
@@ -1869,7 +1871,6 @@ nextpage:
 					feed_load(f, f->fp);
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
-				updategeom();
 				updatetitle();
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
 				p = &panes[PaneItems];
