@@ -1006,6 +1006,8 @@ linetoitem(char *line, struct item *item)
 	memcpy(item->fields, fields, sizeof(fields));
 	if (urlfile)
 		item->link = estrdup(fields[FieldLink]);
+	else
+		item->link = NULL;
 
 	parsedtime = 0;
 	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
