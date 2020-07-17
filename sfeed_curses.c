@@ -634,10 +634,20 @@ pane_row_draw(struct pane *p, off_t pos)
 }
 
 void
-pane_setpos(struct pane *p, off_t pos)
+pane_row_redraw(struct pane *p, off_t pos)
 {
 	off_t prev;
 
+	prev = p->pos;
+	p->pos = pos;
+	pane_row_draw(p, prev); /* draw previous row again */
+	pane_row_draw(p, p->pos); /* draw new highlighted row */
+	fflush(stdout); /* flush and update directly */
+}
+
+void
+pane_setpos(struct pane *p, off_t pos)
+{
 	if (pos < 0)
 		pos = 0; /* clamp */
 	if (!p->nrows)
@@ -655,11 +665,7 @@ pane_setpos(struct pane *p, off_t pos)
 		pane_draw(p);
 	} else {
 		/* only redraw the 1 or 2 dirty rows */
-		prev = p->pos;
-		p->pos = pos;
-		pane_row_draw(p, prev); /* draw previous row again */
-		pane_row_draw(p, p->pos); /* draw new highlighted row */
-		fflush(stdout); /* flush and update directly */
+		pane_row_redraw(p, pos);
 	}
 }
 
@@ -1528,7 +1534,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 	FILE *fp;
 	off_t i;
 	const char *cmd;
-	int isnew = !isread, pid, wpid, status;
+	int changed, isnew = !isread, pid, wpid, status;
 
 	if (!urlfile || !p->nrows)
 		return;
@@ -1570,13 +1576,20 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		/* fail: exit statuscode was non-zero */
 		if (status)
 			break;
-		for (i = from; i <= to && i < p->nrows; i++) {
+		for (i = from, changed = 0; i <= to && i < p->nrows; i++) {
 			row = &(p->rows[i]);
 			item = (struct item *)row->data;
 			if (item->isnew != isnew) {
 				row->bold = item->isnew = isnew;
 				curfeed->totalnew += isnew ? 1 : -1;
+				changed++;
 			}
+		}
+		if (changed) {
+			if (from != to || from != p->pos)
+				p->dirty = 1;
+			else
+				pane_row_redraw(p, from);
 		}
 		updatesidebar(onlynew);
 		updatetitle();
