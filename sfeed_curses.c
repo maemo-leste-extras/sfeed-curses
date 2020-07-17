@@ -870,14 +870,20 @@ readch(void)
 {
 	unsigned char b;
 	fd_set readfds;
+	struct timeval tv;
 
 	for (;;) {
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
-		if (select(1, &readfds, NULL, NULL, NULL) == -1) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 250000; /* 250ms */
+		switch (select(1, &readfds, NULL, NULL, &tv)) {
+		case -1:
 			if (errno != EINTR)
 				err(1, "select");
 			return -2; /* EINTR: like a signal */
+		case 0:
+			return -3; /* time-out */
 		}
 
 		switch (read(0, &b, 1)) {
@@ -1919,6 +1925,8 @@ nextpage:
 event:
 		if (ch == EOF)
 			goto end;
+		else if (ch == -3 && sigstate == 0)
+			continue; /* just a time-out, nothing to do */
 
 		/* handle last signal */
 		switch (sigstate) {
