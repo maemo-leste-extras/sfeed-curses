@@ -96,7 +96,7 @@ struct feed {
 };
 
 struct item {
-	char *link; /* separate link field (always loaded) */
+	char *link; /* separate link field (always loaded in case of urlfile) */
 	char *fields[FieldLast];
 	char *line; /* allocated split line */
 	time_t timestamp;
@@ -1004,7 +1004,8 @@ linetoitem(char *line, struct item *item)
 	item->line = line;
 	parseline(line, fields);
 	memcpy(item->fields, fields, sizeof(fields));
-	item->link = estrdup(fields[FieldLink]);
+	if (urlfile)
+		item->link = estrdup(fields[FieldLink]);
 
 	parsedtime = 0;
 	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
@@ -1343,7 +1344,7 @@ draw(void)
 	if (panes[PaneItems].nrows &&
 	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
-		statusbar_update(&statusbar, item->link);
+		statusbar_update(&statusbar, item->fields[FieldLink]);
 	} else {
 		statusbar_update(&statusbar, "");
 	}
@@ -1896,7 +1897,7 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				plumb(plumber, item->link);
+				plumb(plumber, item->fields[FieldLink]);
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
