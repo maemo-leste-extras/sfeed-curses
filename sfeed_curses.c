@@ -438,8 +438,8 @@ cleanup(void)
 	/* restore terminal settings */
 	tcsetattr(0, TCSANOW, &tsave);
 
-	appmode(0);
 	cursormode(1);
+	appmode(0);
 	clearscreen();
 
 	/* xterm mouse-mode */
@@ -493,8 +493,8 @@ init(void)
 
 	resizewin();
 
-	cursormode(0);
 	appmode(1);
+	cursormode(0);
 
 	/* xterm mouse-mode */
 	if (usemouse)
