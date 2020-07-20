@@ -1248,6 +1248,7 @@ feeds_reloadall(void)
 
 	pos = panes[PaneItems].pos; /* store numeric position */
 	readurls();
+	feeds_set(curfeed); /* close and reopen feed if possible */
 	feeds_load(feeds, nfeeds);
 	/* restore numeric position */
 	pane_setpos(&panes[PaneItems], pos);
