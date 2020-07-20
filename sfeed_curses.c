@@ -1229,7 +1229,7 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 		}
 
 		/* load first items, because of first selection or stdin. */
-		if (i == 0 || f == curfeed) {
+		if (f == curfeed) {
 			feed_load(f, f->fp);
 		} else {
 			feed_count(f, f->fp);
@@ -1688,8 +1688,8 @@ main(int argc, char *argv[])
 		nfeeds = argc - 1;
 	}
 	readurls();
-	feeds_load(feeds, nfeeds);
 	feeds_set(&feeds[0]);
+	feeds_load(feeds, nfeeds);
 
 	if (!isatty(0)) {
 		if ((fd = open("/dev/tty", O_RDONLY)) == -1)
