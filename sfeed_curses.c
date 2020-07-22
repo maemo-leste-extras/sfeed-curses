@@ -1256,6 +1256,29 @@ feeds_reloadall(void)
 	updatetitle();
 }
 
+int
+getsidebarwidth(void)
+{
+	struct feed *feed;
+	static char text[1024];
+	int i, len, width = 0;
+
+	for (i = 0; i < nfeeds; i++) {
+		feed = &feeds[i];
+
+		snprintf(text, sizeof(text), "%s (%lu/%lu)",
+		         feed->name, feed->totalnew, feed->total);
+		len = colw(text);
+		if (len > width)
+			width = len;
+
+		if (onlynew && feed->totalnew == 0)
+			continue;
+	}
+
+	return width;
+}
+
 void
 updatesidebar(int onlynew)
 {
@@ -1263,15 +1286,17 @@ updatesidebar(int onlynew)
 	struct row *row;
 	struct feed *feed;
 	size_t i, nrows;
-	int len, width;
+	int len, oldwidth;
 
 	p = &panes[PaneFeeds];
 
 	if (!p->rows)
 		p->rows = ecalloc(sizeof(p->rows[0]), nfeeds + 1);
 
+	oldwidth = p->width;
+	p->width = getsidebarwidth();
+
 	nrows = 0;
-	width = 0;
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
 
@@ -1280,24 +1305,18 @@ updatesidebar(int onlynew)
 		row->bold = (feed->totalnew > 0);
 		row->data = feed;
 
-		len = colw(pane_row_text(p, row));
-		if (len > width)
-			width = len;
-
 		if (onlynew && feed->totalnew == 0)
 			continue;
 
 		nrows++;
 	}
-
-	if (p->width != width) {
-		for (i = 0; i < PaneLast; i++)
-			panes[i].dirty = 1;
-	} else {
-		p->dirty = 1;
-	}
 	p->nrows = nrows;
-	p->width = width;
+
+	if (p->width != oldwidth)
+		updategeom();
+	else
+		p->dirty = 1;
+
 	if (!p->nrows)
 		p->pos = 0;
 	else if (p->pos >= p->nrows)
@@ -1450,15 +1469,10 @@ feed_row_format(struct pane *p, struct row *row)
 
 	feed = (struct feed *)row->data;
 
-	if (p->width) {
-		len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
-		               feed->totalnew, feed->total);
-		utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ');
-		snprintf(text, sizeof(text), "%s%s", bufw, counts);
-	} else {
-		snprintf(text, sizeof(text), "%s (%lu/%lu)",
-		         feed->name, feed->totalnew, feed->total);
-	}
+	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
+	               feed->totalnew, feed->total);
+	utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ');
+	snprintf(text, sizeof(text), "%s%s", bufw, counts);
 
 	return text;
 }
