@@ -776,7 +776,7 @@ updategeom(void)
 	panes[PaneFeeds].y = 0;
 	panes[PaneFeeds].height = win.height - 1; /* space for statusbar */
 
-	/* NOTE: updatesidebar() must happen before updategeometry for the
+	/* NOTE: updatesidebar() must happen before this function for the
 	   remaining width */
 	if (!panes[PaneFeeds].hidden) {
 		w = win.width - panes[PaneFeeds].width;
@@ -1711,8 +1711,8 @@ main(int argc, char *argv[])
 	if ((devnullfd = open("/dev/null", O_WRONLY)) < 0)
 		err(1, "open: /dev/null");
 
-	updatetitle();
 	updatesidebar(onlynew);
+	updatetitle();
 	init();
 	draw();
 
