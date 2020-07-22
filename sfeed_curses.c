@@ -1421,6 +1421,7 @@ mousereport(int button, int release, int x, int y)
 				break;
 			pane_setpos(p, pos);
 			if (i == PaneFeeds) {
+				readurls();
 				row = pane_row_get(p, pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
@@ -1900,8 +1901,9 @@ nextpage:
 			break;
 		case 'o': /* feeds: load, items: plumb url */
 		case '\n':
+			p = &panes[selpane];
 			if (selpane == PaneFeeds && panes[PaneFeeds].nrows) {
-				p = &panes[selpane];
+				readurls();
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
@@ -1911,7 +1913,6 @@ nextpage:
 				updatesidebar(onlynew);
 				updatetitle();
 			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneItems];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
@@ -1924,7 +1925,7 @@ nextpage:
 		case 'y': /* yank: pipe TSV line to yank url to clipboard */
 		case 'E': /* yank: pipe TSV line to yank enclosure to clipboard */
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneItems];
+				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				switch (ch) {
@@ -1947,7 +1948,7 @@ nextpage:
 		case 'r': /* mark item as read */
 		case 'u': /* mark item as unread */
 			if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneItems];
+				p = &panes[selpane];
 				markread(p, p->pos, p->pos, ch == 'r');
 			}
 			break;
