@@ -1286,7 +1286,7 @@ updatesidebar(int onlynew)
 	struct row *row;
 	struct feed *feed;
 	size_t i, nrows;
-	int len, oldwidth;
+	int oldwidth;
 
 	p = &panes[PaneFeeds];
 
