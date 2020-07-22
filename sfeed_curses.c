@@ -1420,7 +1420,7 @@ mousereport(int button, int release, int x, int y)
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (i == PaneFeeds) {
+			if (selpane == PaneFeeds) {
 				readurls();
 				row = pane_row_get(p, pos);
 				f = (struct feed *)row->data;
@@ -1430,9 +1430,9 @@ mousereport(int button, int release, int x, int y)
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
 				updatetitle();
-			} else if (i == PaneItems) {
+			} else if (selpane == PaneItems) {
 				if (dblclick && !changedpane) {
-					row = pane_row_get(&panes[PaneItems], pos);
+					row = pane_row_get(p, pos);
 					item = (struct item *)row->data;
 					markread(p, p->pos, p->pos, 1);
 					plumb(plumber, item->fields[FieldLink]);
@@ -1443,8 +1443,7 @@ mousereport(int button, int release, int x, int y)
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (i == PaneItems) {
-				p = &panes[PaneItems];
+			if (selpane == PaneItems) {
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
@@ -1877,8 +1876,8 @@ nextpage:
 		case 'a': /* attachment */
 		case 'e': /* enclosure */
 		case '@':
-			if (selpane == PaneItems && panes[PaneItems].nrows) {
-				p = &panes[PaneItems];
+			if (selpane == PaneItems && panes[selpane].nrows) {
+				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				plumb(plumber, item->fields[FieldEnclosure]);
@@ -1890,7 +1889,7 @@ nextpage:
 			break;
 		case 's': /* toggle sidebar */
 			panes[PaneFeeds].hidden = !panes[PaneFeeds].hidden;
-			if (selpane == PaneFeeds && panes[PaneFeeds].hidden)
+			if (selpane == PaneFeeds && panes[selpane].hidden)
 				selpane = PaneItems;
 			updategeom();
 			break;
@@ -1902,7 +1901,7 @@ nextpage:
 		case 'o': /* feeds: load, items: plumb url */
 		case '\n':
 			p = &panes[selpane];
-			if (selpane == PaneFeeds && panes[PaneFeeds].nrows) {
+			if (selpane == PaneFeeds && panes[selpane].nrows) {
 				readurls();
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
@@ -1912,7 +1911,7 @@ nextpage:
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
 				updatetitle();
-			} else if (selpane == PaneItems && panes[PaneItems].nrows) {
+			} else if (selpane == PaneItems && panes[selpane].nrows) {
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
@@ -1924,7 +1923,7 @@ nextpage:
 		case '|':
 		case 'y': /* yank: pipe TSV line to yank url to clipboard */
 		case 'E': /* yank: pipe TSV line to yank enclosure to clipboard */
-			if (selpane == PaneItems && panes[PaneItems].nrows) {
+			if (selpane == PaneItems && panes[selpane].nrows) {
 				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
@@ -1947,7 +1946,7 @@ nextpage:
 			break;
 		case 'r': /* mark item as read */
 		case 'u': /* mark item as unread */
-			if (selpane == PaneItems && panes[PaneItems].nrows) {
+			if (selpane == PaneItems && panes[selpane].nrows) {
 				p = &panes[selpane];
 				markread(p, p->pos, p->pos, ch == 'r');
 			}
