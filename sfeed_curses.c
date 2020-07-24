@@ -1363,15 +1363,6 @@ draw(void)
 		win.dirty = 0;
 	}
 
-	/* if item selection text changed, update the status text */
-	if (panes[PaneItems].nrows &&
-	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
-		item = (struct item *)row->data;
-		statusbar_update(&statusbar, item->fields[FieldLink]);
-	} else {
-		statusbar_update(&statusbar, "");
-	}
-
 	/* NOTE: theres the same amount and indices of panes and scrollbars. */
 	for (i = 0; i < LEN(panes); i++) {
 		pane_setfocus(&panes[i], i == selpane);
@@ -1383,7 +1374,17 @@ draw(void)
 		                 panes[i].nrows, panes[i].height);
 		scrollbar_draw(&scrollbars[i]);
 	}
+
+	/* if item selection text changed, update the status text */
+	if (panes[PaneItems].nrows &&
+	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
+		item = (struct item *)row->data;
+		statusbar_update(&statusbar, item->fields[FieldLink]);
+	} else {
+		statusbar_update(&statusbar, "");
+	}
 	statusbar_draw(&statusbar);
+
 	fflush(stdout);
 }
 
