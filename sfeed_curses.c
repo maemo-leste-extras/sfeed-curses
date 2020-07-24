@@ -789,10 +789,10 @@ updategeom(void)
 		x = 0;
 	}
 
-	panes[PaneItems].width = w - 1; /* rest and space for scrollbar */
-	panes[PaneItems].height = win.height - 1; /* space for statusbar */
 	panes[PaneItems].x = x;
-	panes[PaneItems].y = 0;
+	panes[PaneItems].width = w - 1; /* rest and space for scrollbar */
+	panes[PaneItems].height = panes[PaneFeeds].height;
+	panes[PaneItems].y = panes[PaneFeeds].y;
 
 	scrollbars[PaneFeeds].x = panes[PaneFeeds].x + panes[PaneFeeds].width;
 	scrollbars[PaneFeeds].y = panes[PaneFeeds].y;
