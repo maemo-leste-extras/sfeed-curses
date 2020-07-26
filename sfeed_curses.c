@@ -26,7 +26,7 @@
 enum {
 	ATTR_RESET = 0,
 	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2,
-	ATTR_REVERSE_ON = 7, ATTR_REVERSE_OFF = 27,
+	ATTR_REVERSE_ON = 7, ATTR_REVERSE_OFF = 27
 };
 
 enum Pane { PaneFeeds, PaneItems, PaneLast };
