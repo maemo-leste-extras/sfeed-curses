@@ -24,9 +24,7 @@
 #define SCROLLBAR_SYMBOL    "\xe2\x94\x82" /* symbol: "light vertical" */
 
 enum {
-	ATTR_RESET = 0,
-	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2,
-	ATTR_REVERSE_ON = 7, ATTR_REVERSE_OFF = 27
+	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
 };
 
 enum Pane { PaneFeeds, PaneItems, PaneLast };
@@ -407,7 +405,6 @@ attrmode(int mode)
 	case ATTR_BOLD_ON: p = enter_bold_mode; break;
 	case ATTR_FAINT_ON: p = enter_dim_mode; break;
 	case ATTR_REVERSE_ON: p = enter_standout_mode; break;
-	case ATTR_REVERSE_OFF: p = exit_standout_mode; break;
 	default: return;
 	}
 	putp(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -854,20 +851,25 @@ scrollbar_draw(struct scrollbar *s)
 		return;
 
 	cursorsave();
+
+	/* draw bar (not tick) */
 	if (!s->focused)
 		attrmode(ATTR_FAINT_ON);
 	for (y = 0; y < s->size; y++) {
+		if (y >= s->tickpos && y < s->tickpos + s->ticksize)
+			continue; /* skip tick */
 		cursormove(s->x, s->y + y);
-		if (y >= s->tickpos && y < s->tickpos + s->ticksize) {
-			attrmode(ATTR_REVERSE_ON);
-			fputs(" ", stdout);
-			attrmode(ATTR_REVERSE_OFF);
-		} else {
-			fputs(SCROLLBAR_SYMBOL, stdout);
-		}
+		fputs(SCROLLBAR_SYMBOL, stdout);
 	}
-	if (!s->focused)
-		attrmode(ATTR_RESET);
+
+	/* draw tick */
+	attrmode(ATTR_REVERSE_ON);
+	for (y = s->tickpos; y < s->size && y < s->tickpos + s->ticksize; y++) {
+		cursormove(s->x, s->y + y);
+		fputs(" ", stdout);
+	}
+
+	attrmode(ATTR_RESET);
 	cursorrestore();
 	s->dirty = 0;
 }
@@ -955,7 +957,7 @@ uiprompt(int x, int y, char *fmt, ...)
 	cursormove(x, y);
 	attrmode(ATTR_REVERSE_ON);
 	fputs(buf, stdout);
-	attrmode(ATTR_REVERSE_OFF);
+	attrmode(ATTR_RESET);
 	cleareol();
 	cursormode(1);
 	cursormove(x + colw(buf) + 1, y);
@@ -979,7 +981,7 @@ statusbar_draw(struct statusbar *s)
 	cursormove(s->x, s->y);
 	attrmode(ATTR_REVERSE_ON);
 	printpad(s->text, s->width);
-	attrmode(ATTR_REVERSE_OFF);
+	attrmode(ATTR_RESET);
 	cursorrestore();
 	s->dirty = 0;
 }
