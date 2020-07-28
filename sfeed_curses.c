@@ -618,7 +618,7 @@ pane_row_draw(struct pane *p, off_t pos)
 		if (!p->focused)
 			attrmode(ATTR_FAINT_ON);
 		r = 1;
-	} else if (p->nrows && pos < p->nrows && row && row->bold) {
+	} else if (row && row->bold) {
 		attrmode(ATTR_BOLD_ON);
 		r = 1;
 	}
@@ -660,23 +660,10 @@ pane_setpos(struct pane *p, off_t pos)
 	    ((pos - (pos % p->height)) / p->height)) {
 		p->pos = pos;
 		p->dirty = 1;
-		pane_draw(p);
 	} else {
 		/* only redraw the 1 or 2 dirty rows */
 		pane_row_redraw(p, pos);
 	}
-}
-
-void
-pane_setstartpos(struct pane *p)
-{
-	pane_setpos(p, 0);
-}
-
-void
-pane_setendpos(struct pane *p)
-{
-	pane_setpos(p, p->nrows - 1);
 }
 
 void
@@ -1118,25 +1105,17 @@ feed_load(struct feed *f, FILE *fp)
 		free(items[i].link);
 	}
 	free(items);
-	items = NULL;
-	nitems = 0;
-
-	p = &panes[PaneItems];
-	free(p->rows);
-	p->rows = NULL;
-	p->nrows = 0;
 
 	if (feed_getitems(f, fp, &items, &nitems) == -1)
 		err(1, "%s: %s", __func__, f->name);
 
+	p = &panes[PaneItems];
 	p->pos = 0;
 	p->nrows = nitems;
+	free(p->rows);
 	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
-	for (i = 0; i < nitems; i++) {
-		row = &(p->rows[i]); /* do not use pane_row_get */
-		row->text = ""; /* custom formatter */
-		row->data = &items[i];
-	}
+	for (i = 0; i < nitems; i++)
+		p->rows[i].data = &items[i]; /* do not use pane_row_get */
 
 	updatenewitems(f);
 
@@ -1303,7 +1282,6 @@ updatesidebar(int onlynew)
 		feed = &feeds[i];
 
 		row = &(p->rows[nrows]);
-		row->text = ""; /* custom formatter is used */
 		row->bold = (feed->totalnew > 0);
 		row->data = feed;
 
@@ -1378,8 +1356,7 @@ draw(void)
 	}
 
 	/* if item selection text changed, update the status text */
-	if (panes[PaneItems].nrows &&
-	    (row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
+	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
 		statusbar_update(&statusbar, item->fields[FieldLink]);
 	} else {
@@ -1425,7 +1402,7 @@ mousereport(int button, int release, int x, int y)
 			pane_setpos(p, pos);
 			if (selpane == PaneFeeds) {
 				readurls();
-				row = pane_row_get(p, pos);
+				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
 				if (f->fp)
@@ -1435,7 +1412,7 @@ mousereport(int button, int release, int x, int y)
 				updatetitle();
 			} else if (selpane == PaneItems) {
 				if (dblclick && !changedpane) {
-					row = pane_row_get(p, pos);
+					row = pane_row_get(p, p->pos);
 					item = (struct item *)row->data;
 					markread(p, p->pos, p->pos, 1);
 					plumb(plumber, item->fields[FieldLink]);
@@ -1581,7 +1558,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			err(1, "popen");
 
 		for (i = from; i <= to; i++) {
-			row = &(p->rows[i]);
+			row = &(p->rows[i]); /* use pane_row_get: no need for lazyload */
 			item = (struct item *)row->data;
 			if (item->isnew != isnew) {
 				fputs(item->link, fp);
@@ -1818,11 +1795,13 @@ keyright:
 			break;
 startpos:
 		case 'g':
-			pane_setstartpos(&panes[selpane]);
+			pane_setpos(&panes[selpane], 0);
 			break;
 endpos:
 		case 'G':
-			pane_setendpos(&panes[selpane]);
+			p = &panes[selpane];
+			if (p->nrows)
+				pane_setpos(p, p->nrows - 1);
 			break;
 prevpage:
 		case 2: /* ^B */
