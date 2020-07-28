@@ -35,22 +35,22 @@ enum {
 };
 
 struct win {
-	int width;
-	int height;
-	int dirty;
+	int width; /* absolute width of the window */
+	int height; /* absolute height of the window */
+	int dirty; /* needs draw update: clears screen */
 };
 
 struct row {
-	char *text;
+	char *text; /* text string, optional if using row_format() callback */
 	int bold;
-	void *data;
+	void *data; /* data binding */
 };
 
 struct pane {
 	int x; /* absolute x position on the screen */
 	int y; /* absolute y position on the screen */
-	int width; /* absolute width of the window */
-	int height; /* absolute height of the window */
+	int width; /* absolute width of the pane */
+	int height; /* absolute height of the pane */
 	off_t pos; /* focused row position */
 	struct row *rows;
 	size_t nrows; /* total amount of rows */
@@ -640,7 +640,7 @@ pane_row_redraw(struct pane *p, off_t pos)
 	p->pos = pos;
 	pane_row_draw(p, prev); /* draw previous row again */
 	pane_row_draw(p, p->pos); /* draw new highlighted row */
-	fflush(stdout); /* flush and update directly */
+	fflush(stdout); /* flush and update immediately */
 }
 
 void
