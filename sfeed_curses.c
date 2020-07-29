@@ -655,11 +655,10 @@ pane_setpos(struct pane *p, off_t pos)
 	if (pos == p->pos)
 		return; /* no change */
 
-	p->pos = pos;
-
 	/* is on different scroll region? mark dirty */
 	if (((p->pos - (p->pos % p->height)) / p->height) !=
 	    ((pos - (pos % p->height)) / p->height)) {
+		p->pos = pos;
 		p->dirty = 1;
 	} else {
 		/* only redraw the 1 or 2 dirty rows */
