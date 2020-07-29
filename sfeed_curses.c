@@ -601,7 +601,7 @@ pane_row_match(struct pane *p, struct row *row, const char *s)
 }
 
 void
-pane_row_draw(struct pane *p, off_t pos)
+pane_row_draw(struct pane *p, off_t pos, int selected)
 {
 	struct row *row;
 	int r, y;
@@ -613,7 +613,7 @@ pane_row_draw(struct pane *p, off_t pos)
 	cursormove(p->x, y);
 
 	r = 0;
-	if (pos == p->pos) {
+	if (selected) {
 		attrmode(ATTR_REVERSE_ON);
 		if (!p->focused)
 			attrmode(ATTR_FAINT_ON);
@@ -632,18 +632,6 @@ pane_row_draw(struct pane *p, off_t pos)
 }
 
 void
-pane_row_redraw(struct pane *p, off_t pos)
-{
-	off_t prev;
-
-	prev = p->pos;
-	p->pos = pos;
-	pane_row_draw(p, prev); /* draw previous row again */
-	pane_row_draw(p, p->pos); /* draw new highlighted row */
-	fflush(stdout); /* flush and update immediately */
-}
-
-void
 pane_setpos(struct pane *p, off_t pos)
 {
 	if (pos < 0)
@@ -655,15 +643,17 @@ pane_setpos(struct pane *p, off_t pos)
 	if (pos == p->pos)
 		return; /* no change */
 
-	/* is on different scroll region? mark dirty */
+	/* is on different scroll region? mark whole pane dirty */
 	if (((p->pos - (p->pos % p->height)) / p->height) !=
 	    ((pos - (pos % p->height)) / p->height)) {
-		p->pos = pos;
 		p->dirty = 1;
 	} else {
-		/* only redraw the 1 or 2 dirty rows */
-		pane_row_redraw(p, pos);
+		/* only redraw the 2 dirty rows */
+		pane_row_draw(p, p->pos, 0);
+		pane_row_draw(p, pos, 1);
+		fflush(stdout); /* flush and update immediately */
 	}
+	p->pos = pos;
 }
 
 void
@@ -707,9 +697,10 @@ pane_draw(struct pane *p)
 	if (p->hidden || !p->dirty)
 		return;
 
+	/* draw visible rows */
 	pos = p->pos - (p->pos % p->height);
 	for (y = 0; y < p->height; y++)
-		pane_row_draw(p, y + pos);
+		pane_row_draw(p, y + pos, (y + pos) == p->pos);
 
 	p->dirty = 0;
 }
@@ -1533,7 +1524,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 	FILE *fp;
 	off_t i;
 	const char *cmd;
-	int changed, isnew = !isread, pid, wpid, status;
+	int isnew = !isread, pid, wpid, status, visstart;
 
 	if (!urlfile || !p->nrows)
 		return;
@@ -1575,23 +1566,24 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		/* fail: exit statuscode was non-zero */
 		if (status)
 			break;
-		for (i = from, changed = 0; i <= to && i < p->nrows; i++) {
+
+		visstart = p->pos - (p->pos % p->height); /* visible start */
+		for (i = from; i <= to && i < p->nrows; i++) {
 			row = &(p->rows[i]);
 			item = (struct item *)row->data;
-			if (item->isnew != isnew) {
-				row->bold = item->isnew = isnew;
-				curfeed->totalnew += isnew ? 1 : -1;
-				changed++;
-			}
-		}
-		if (changed) {
-			if (from != to || from != p->pos)
-				p->dirty = 1;
-			else
-				pane_row_redraw(p, from);
+			if (item->isnew == isnew)
+				continue;
+
+			row->bold = item->isnew = isnew;
+			curfeed->totalnew += isnew ? 1 : -1;
+
+			/* draw if visible on screen */
+			if (i >= visstart && i < visstart + p->height)
+				pane_row_draw(p, i, i == p->pos);
 		}
 		updatesidebar(onlynew);
 		updatetitle();
+		fflush(stdout); /* flush and update immediately */
 	}
 }
 
