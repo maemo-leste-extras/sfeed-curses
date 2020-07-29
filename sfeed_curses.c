@@ -1088,7 +1088,6 @@ feed_load(struct feed *f, FILE *fp)
 	static struct item *items = NULL;
 	static size_t nitems = 0;
 	struct pane *p;
-	struct row *row;
 	size_t i;
 
 	for (i = 0; i < nitems; i++) {
@@ -1507,7 +1506,6 @@ item_row_format(struct pane *p, struct row *row)
 		         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		         tm.tm_hour, tm.tm_min, item->fields[FieldTitle]);
 	} else {
-		localtime_r(&(item->timestamp), &tm);
 		snprintf(text, sizeof(text), "%c                  %s",
 		         item->fields[FieldEnclosure][0] ? '@' : ' ',
 		         item->fields[FieldTitle]);
