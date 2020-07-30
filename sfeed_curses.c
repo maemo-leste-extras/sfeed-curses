@@ -150,6 +150,25 @@ volatile sig_atomic_t sigstate = 0;
 static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
 static char *piper = "less"; /* environment variable: $SFEED_PIPER */
 
+int
+ttywritef(const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = vdprintf(1, fmt, ap);
+	va_end(ap);
+
+	return n;
+}
+
+int
+ttywrite(const char *s)
+{
+	return write(1, s, strlen(s));
+}
+
 /* like BSD err(), but calls cleanup() and _exit(). */
 void
 err(int code, const char *fmt, ...)
@@ -161,12 +180,12 @@ err(int code, const char *fmt, ...)
 	cleanup();
 
 	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
+	vdprintf(2, fmt, ap);
 	va_end(ap);
 
-	fputs(": ", stderr);
-	errno = saved_errno;
-	perror(NULL);
+	if (saved_errno)
+		dprintf(2, ": %s", strerror(saved_errno));
+	write(2, "\n", 1);
 
 	_exit(code);
 }
@@ -331,13 +350,13 @@ printpad(const char *s, int width)
 {
 	char buf[1024];
 	utf8pad(buf, sizeof(buf), s, width, ' ');
-	fputs(buf, stdout);
+	ttywrite(buf);
 }
 
 void
 resettitle(void)
 {
-	fputs("\x1b""c", stdout); /* rs1: reset title and state */
+	ttywrite("\x1b""c"); /* rs1: reset title and state */
 }
 
 void
@@ -350,48 +369,48 @@ updatetitle(void)
 		totalnew += feeds[i].totalnew;
 		total += feeds[i].total;
 	}
-	printf("\x1b]2;(%lu/%lu) - sfeed_curses\x1b\\", totalnew, total);
+	ttywritef("\x1b]2;(%lu/%lu) - sfeed_curses\x1b\\", totalnew, total);
 }
 
 void
 appmode(int on)
 {
-	/*fputs(on ? "\x1b[?1049h" : "\x1b[?1049l", stdout);*/ /* smcup, rmcup */
-	putp(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite(on ? "\x1b[?1049h" : "\x1b[?1049l");*/ /* smcup, rmcup */
+	ttywrite(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 mousemode(int on)
 {
-	fputs(on ? "\x1b[?1000h" : "\x1b[?1000l", stdout); /* xterm mouse mode */
+	ttywrite(on ? "\x1b[?1000h" : "\x1b[?1000l"); /* xterm mouse mode */
 }
 
 void
 cursormode(int on)
 {
-	/*fputs(on ? "\x1b[?25h" : "\x1b[?25l", stdout);*/ /* DECTCEM (in)Visible cursor */
-	putp(tparm(on ? cursor_visible : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite(on ? "\x1b[?25h" : "\x1b[?25l");*/ /* DECTCEM (in)Visible cursor */
+	ttywrite(tparm(on ? cursor_visible : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursorsave(void)
 {
-	/*fputs("\x1b""7", stdout);*/
-	putp(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite("\x1b""7");*/
+	ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursorrestore(void)
 {
-	/*fputs("\x1b""8", stdout);*/
-	putp(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite("\x1b""8");*/
+	ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursormove(int x, int y)
 {
-	/*printf("\x1b[%d;%dH", y + 1, x + 1);*/
-	putp(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywritef("\x1b[%d;%dH", y + 1, x + 1);*/
+	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -399,7 +418,7 @@ attrmode(int mode)
 {
 	char *p;
 
-	/*printf("\x1b[%dm", mode);*/
+	/*ttywritef("\x1b[%dm", mode);*/
 	switch (mode) {
 	case ATTR_RESET: p = exit_attribute_mode; break;
 	case ATTR_BOLD_ON: p = enter_bold_mode; break;
@@ -407,21 +426,21 @@ attrmode(int mode)
 	case ATTR_REVERSE_ON: p = enter_standout_mode; break;
 	default: return;
 	}
-	putp(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cleareol(void)
 {
-	/*fputs("\x1b[K", stdout);*/
-	putp(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite("\x1b[K");*/
+	ttywrite(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 clearscreen(void)
 {
-	/*fputs("\x1b[H\x1b[2J", stdout);*/
-	putp(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite("\x1b[H\x1b[2J");*/
+	ttywrite(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -444,7 +463,6 @@ cleanup(void)
 		mousemode(0);
 
 	resettitle();
-	fflush(stdout);
 
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
@@ -498,7 +516,6 @@ init(void)
 		mousemode(usemouse);
 
 	updategeom();
-	fflush(stdout);
 
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
@@ -625,7 +642,7 @@ pane_row_draw(struct pane *p, off_t pos, int selected)
 	if (row)
 		printpad(pane_row_text(p, row), p->width);
 	else
-		printf("%-*.*s", p->width, p->width, "");
+		ttywritef("%-*.*s", p->width, p->width, "");
 	if (r)
 		attrmode(ATTR_RESET);
 	cursorrestore();
@@ -651,7 +668,6 @@ pane_setpos(struct pane *p, off_t pos)
 		/* only redraw the 2 dirty rows */
 		pane_row_draw(p, p->pos, 0);
 		pane_row_draw(p, pos, 1);
-		fflush(stdout); /* flush and update immediately */
 	}
 	p->pos = pos;
 }
@@ -837,14 +853,14 @@ scrollbar_draw(struct scrollbar *s)
 		if (y >= s->tickpos && y < s->tickpos + s->ticksize)
 			continue; /* skip tick */
 		cursormove(s->x, s->y + y);
-		fputs(SCROLLBAR_SYMBOL, stdout);
+		ttywrite(SCROLLBAR_SYMBOL);
 	}
 
 	/* draw tick */
 	attrmode(ATTR_REVERSE_ON);
 	for (y = s->tickpos; y < s->size && y < s->tickpos + s->ticksize; y++) {
 		cursormove(s->x, s->y + y);
-		fputs(" ", stdout);
+		ttywrite(" ");
 	}
 
 	attrmode(ATTR_RESET);
@@ -934,12 +950,11 @@ uiprompt(int x, int y, char *fmt, ...)
 	cursorsave();
 	cursormove(x, y);
 	attrmode(ATTR_REVERSE_ON);
-	fputs(buf, stdout);
+	ttywrite(buf);
 	attrmode(ATTR_RESET);
 	cleareol();
 	cursormode(1);
 	cursormove(x + colw(buf) + 1, y);
-	fflush(stdout);
 
 	input = lineeditor();
 
@@ -1353,8 +1368,6 @@ draw(void)
 		statusbar_update(&statusbar, "");
 	}
 	statusbar_draw(&statusbar);
-
-	fflush(stdout);
 }
 
 void
@@ -1581,7 +1594,6 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		}
 		updatesidebar(onlynew);
 		updatetitle();
-		fflush(stdout); /* flush and update immediately */
 	}
 }
 
