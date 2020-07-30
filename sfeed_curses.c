@@ -19,9 +19,32 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#define LEN(a)              sizeof((a))/sizeof((a)[0])
-#define PAD_TRUNCATE_SYMBOL "\xe2\x80\xa6" /* symbol: "ellipsis" */
-#define SCROLLBAR_SYMBOL    "\xe2\x94\x82" /* symbol: "light vertical" */
+/* Allow to lazyload items when a file is specified? This saves memory but
+   increases some latency when seeking items. It also causes issues if the
+   feed is changed while having the UI open (and offsets are changed). */
+/*#define LAZYLOAD 1 */
+
+#define LEN(a) sizeof((a))/sizeof((a)[0])
+
+#define PAD_TRUNCATE_SYMBOL    "\xe2\x80\xa6" /* symbol: "ellipsis" */
+#define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
+#define SCROLLBAR_SYMBOL_TICK  " "
+
+/* see the README for some color theme examples. */
+#define THEME_ITEM_NORMAL()           do {                            } while(0)
+#define THEME_ITEM_FOCUS()            do {                            } while(0)
+#define THEME_ITEM_BOLD()             do { attrmode(ATTR_BOLD_ON);    } while(0)
+#define THEME_ITEM_SELECTED()         do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_SCROLLBAR_FOCUS()       do {                            } while(0)
+#define THEME_SCROLLBAR_NORMAL()      do { attrmode(ATTR_FAINT_ON);   } while(0)
+#define THEME_SCROLLBAR_TICK_FOCUS()  do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_SCROLLBAR_TICK_NORMAL() do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_STATUSBAR()             do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_INPUT_LABEL()           do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_INPUT_NORMAL()          do {                            } while(0)
+
+static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
+static char *piper = "less"; /* environment variable: $SFEED_PIPER */
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
@@ -139,16 +162,6 @@ static char *urlfile, **urls;
 static size_t nurls;
 
 volatile sig_atomic_t sigstate = 0;
-
-/* config */
-
-/* Allow to lazyload items when a file is specified? This saves memory but
-   increases some latency when seeking items. It also causes issues if the
-   feed is changed while having the UI open (and offsets are changed). */
-/*#define LAZYLOAD 1 */
-
-static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
-static char *piper = "less"; /* environment variable: $SFEED_PIPER */
 
 int
 ttywritef(const char *fmt, ...)
@@ -621,30 +634,26 @@ void
 pane_row_draw(struct pane *p, off_t pos, int selected)
 {
 	struct row *row;
-	int r, y;
 
 	row = pane_row_get(p, pos);
 
-	y = p->y + (pos % p->height); /* relative position on screen */
 	cursorsave();
-	cursormove(p->x, y);
+	cursormove(p->x, p->y + (pos % p->height));
 
-	r = 0;
-	if (selected) {
-		attrmode(ATTR_REVERSE_ON);
-		if (!p->focused)
-			attrmode(ATTR_FAINT_ON);
-		r = 1;
-	} else if (row && row->bold) {
-		attrmode(ATTR_BOLD_ON);
-		r = 1;
-	}
+	if (p->focused)
+		THEME_ITEM_FOCUS();
+	else
+		THEME_ITEM_NORMAL();
+	if (row && row->bold)
+		THEME_ITEM_BOLD();
+	if (selected)
+		THEME_ITEM_SELECTED();
 	if (row)
 		printpad(pane_row_text(p, row), p->width);
 	else
 		ttywritef("%-*.*s", p->width, p->width, "");
-	if (r)
-		attrmode(ATTR_RESET);
+
+	attrmode(ATTR_RESET);
 	cursorrestore();
 }
 
@@ -847,20 +856,25 @@ scrollbar_draw(struct scrollbar *s)
 	cursorsave();
 
 	/* draw bar (not tick) */
-	if (!s->focused)
-		attrmode(ATTR_FAINT_ON);
+	if (s->focused)
+		THEME_SCROLLBAR_FOCUS();
+	else
+		THEME_SCROLLBAR_NORMAL();
 	for (y = 0; y < s->size; y++) {
 		if (y >= s->tickpos && y < s->tickpos + s->ticksize)
 			continue; /* skip tick */
 		cursormove(s->x, s->y + y);
-		ttywrite(SCROLLBAR_SYMBOL);
+		ttywrite(SCROLLBAR_SYMBOL_BAR);
 	}
 
 	/* draw tick */
-	attrmode(ATTR_REVERSE_ON);
+	if (s->focused)
+		THEME_SCROLLBAR_TICK_FOCUS();
+	else
+		THEME_SCROLLBAR_TICK_NORMAL();
 	for (y = s->tickpos; y < s->size && y < s->tickpos + s->ticksize; y++) {
 		cursormove(s->x, s->y + y);
-		ttywrite(" ");
+		ttywrite(SCROLLBAR_SYMBOL_TICK);
 	}
 
 	attrmode(ATTR_RESET);
@@ -949,14 +963,17 @@ uiprompt(int x, int y, char *fmt, ...)
 
 	cursorsave();
 	cursormove(x, y);
-	attrmode(ATTR_REVERSE_ON);
+	THEME_INPUT_LABEL();
 	ttywrite(buf);
 	attrmode(ATTR_RESET);
+
+	THEME_INPUT_NORMAL();
 	cleareol();
 	cursormode(1);
 	cursormove(x + colw(buf) + 1, y);
 
 	input = lineeditor();
+	attrmode(ATTR_RESET);
 
 	cursormode(0);
 	cursorrestore();
@@ -972,7 +989,7 @@ statusbar_draw(struct statusbar *s)
 
 	cursorsave();
 	cursormove(s->x, s->y);
-	attrmode(ATTR_REVERSE_ON);
+	THEME_STATUSBAR();
 	printpad(s->text, s->width);
 	attrmode(ATTR_RESET);
 	cursorrestore();
