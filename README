@@ -111,6 +111,43 @@ Color themes
 #define SCROLLBAR_SYMBOL_BAR  "\xe2\x95\x91" /* symbol: "double vertical" */
 
 
+Running custom commands inside the program
+------------------------------------------
+
+Running commands inside the program can be useful for example to sync items or
+mark all items across all feeds as read. It can be comfortable to have a
+keybind for this inside the program to perform a scripted action and then
+reload the feeds by sending the signal SIGHUP.
+
+In the input handling code you can then add a case:
+
+	case 'M':
+		system("~/.sfeed/markallread.sh >/dev/null 2>/dev/null");
+		break;
+
+or
+
+	case 'S':
+		system("~/.sfeed/sync.sh >/dev/null 2>/dev/null");
+		break;
+
+Example of a `markallread.sh` shellscript to mark all urls as read:
+
+	#!/bin/sh
+	# mark all items/urls as read.
+
+	tmp=$(mktemp)
+	(cat ~/.sfeed/urls; cut -f 3 ~/.sfeed/feeds/*) | \
+	awk '!x[$0]++' > "$tmp" &&
+	mv "$tmp" ~/.sfeed/urls &&
+	pkill -SIGHUP sfeed_curses # reload feeds.
+
+Example of a `sync.sh` shellscript to update the feeds and reload them:
+
+	#!/bin/sh
+	sfeed_update && pkill -SIGHUP sfeed_curses
+
+
 License
 -------
 
