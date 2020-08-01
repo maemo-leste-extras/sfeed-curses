@@ -16,8 +16,8 @@ unread)
 	LC_CTYPE=C awk -F '\t' '
 	{ FILENR += (FNR == 1)	}
 	FILENR == 1 { urls[$0] = 1 }
-	FILENR == 2 { if (urls[$0]) { changed = 1 } else { print $0 } }
-	END { exit(!changed) }' \
+	FILENR == 2 { if (!urls[$0]) { print $0 } }
+	END { exit(FILENR != 2) }' \
 		"/dev/stdin" "$SFEED_URL_FILE" > "$tmp" && \
 		mv "$tmp" "$SFEED_URL_FILE"
 	;;
