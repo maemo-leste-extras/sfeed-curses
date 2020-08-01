@@ -58,7 +58,7 @@ Run-time dependencies
 ---------------------
 
 - A (POSIX) shell.
-- A terminal (emulator) supporting UTF-8 and more modern capabilities.
+- A terminal (emulator) supporting UTF-8 and the used capabilities.
 - xclip for yanking the url or enclosure: can be changed easily.
 - awk, used by the sfeed_markread script (optional).
 
@@ -71,6 +71,20 @@ OS tested
 - NetBSD
 - Windows (cygwin gcc + mintty).
 - HaikuOS
+
+
+Known terminal issues
+---------------------
+
+Below lists some bugs or missing features in terminals that are found while
+testing.  Some of them might be fixed already upstream:
+
+- cygwin + mintty: the xterm encoding of the mouse position is broken for
+  scrolling.
+- HaikuOS terminal: the xterm mouse-encoding of the mouse button number of the
+  middle-button, right-button is incorrect.
+- putty: the full reset attribute (ESC c, typically `rs1`) does not reset the
+  window title.
 
 
 Color themes
