@@ -80,7 +80,7 @@ struct pane {
 	int focused; /* has focus or not */
 	int hidden; /* is visible or not */
 	int dirty; /* needs draw update */
-
+	/* (optional) callback functions */
 	struct row *(*row_get)(struct pane *, off_t pos);
 	char *(*row_format)(struct pane *, struct row *);
 	int (*row_match)(struct pane *, struct row *, const char *);
