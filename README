@@ -136,14 +136,16 @@ reload the feeds by sending the signal SIGHUP.
 In the input handling code you can then add a case:
 
 	case 'M':
-		system("~/.sfeed/markallread.sh >/dev/null 2>/dev/null");
+		plumb("markallread.sh", NULL);
 		break;
 
 or
 
 	case 'S':
-		system("~/.sfeed/sync.sh >/dev/null 2>/dev/null");
+		plumb("syncnews.sh", NULL);
 		break;
+
+The specified script should be in $PATH or an absolute path.
 
 Example of a `markallread.sh` shellscript to mark all urls as read:
 
