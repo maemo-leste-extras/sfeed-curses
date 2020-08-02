@@ -22,7 +22,7 @@
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
    feed is changed while having the UI open (and offsets are changed). */
-/*#define LAZYLOAD 1 */
+/*#define LAZYLOAD 1*/
 
 #define LEN(a) sizeof((a))/sizeof((a)[0])
 
@@ -1487,6 +1487,7 @@ feed_row_match(struct pane *p, struct row *row, const char *s)
 	return (strcasestr(feed->name, s) != NULL);
 }
 
+#ifdef LAZYLOAD
 struct row *
 item_row_get(struct pane *p, off_t pos)
 {
@@ -1519,6 +1520,7 @@ item_row_get(struct pane *p, off_t pos)
 	}
 	return itemrow;
 }
+#endif
 
 /* custom formatter for item row */
 char *
@@ -1682,7 +1684,9 @@ main(int argc, char *argv[])
 	panes[PaneFeeds].row_format = feed_row_format;
 	panes[PaneFeeds].row_match = feed_row_match;
 	panes[PaneItems].row_format = item_row_format;
+#ifdef LAZYLOAD
 	panes[PaneItems].row_get = item_row_get;
+#endif
 
 	feeds = ecalloc(argc, sizeof(struct feed));
 	if (argc == 1) {
