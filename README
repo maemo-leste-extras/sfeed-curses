@@ -60,7 +60,8 @@ Run-time dependencies
 - A (POSIX) shell.
 - A terminal (emulator) supporting UTF-8 and the used capabilities.
 - xclip for yanking the url or enclosure: can be changed easily.
-- awk, used by the sfeed_markread script (optional).
+- awk, used by the sfeed_content and sfeed_markread script (optional).
+- lynx, used by the sfeed_content script (optional).
 
 
 OS tested

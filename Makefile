@@ -17,7 +17,7 @@ SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
 #SFEED_LDFLAGS = ${LDFLAGS} -lncurses
 
 BIN = sfeed_curses
-SCRIPTS = sfeed_markread
+SCRIPTS = sfeed_content sfeed_markread
 
 SRC = ${BIN:=.c}
 
@@ -25,8 +25,7 @@ MAN1 = ${BIN:=.1}\
 	${SCRIPTS:=.1}
 DOC = \
 	LICENSE\
-	README\
-	content.example.sh
+	README
 
 all: ${BIN}
 

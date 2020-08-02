@@ -44,7 +44,7 @@
 #define THEME_INPUT_NORMAL()          do {                            } while(0)
 
 static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
-static char *piper = "less"; /* environment variable: $SFEED_PIPER */
+static char *piper = "sfeed_content"; /* environment variable: $SFEED_PIPER */
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
