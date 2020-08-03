@@ -179,6 +179,8 @@ ttywritef(const char *fmt, ...)
 int
 ttywrite(const char *s)
 {
+	if (!s)
+		return 0; /* for tparm() returning NULL */
 	return write(1, s, strlen(s));
 }
 
