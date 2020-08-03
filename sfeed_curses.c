@@ -404,7 +404,7 @@ void
 cursormode(int on)
 {
 	/*ttywrite(on ? "\x1b[?25h" : "\x1b[?25l");*/ /* DECTCEM (in)Visible cursor */
-	ttywrite(tparm(on ? cursor_visible : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparm(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
