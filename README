@@ -71,7 +71,7 @@ OS tested
 - OpenBSD (clang, gcc).
 - NetBSD
 - Windows (cygwin gcc + mintty).
-- HaikuOS
+- HaikuOS (works, but requires [v]dprintf implementation).
 
 
 Known terminal issues
