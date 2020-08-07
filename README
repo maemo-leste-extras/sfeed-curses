@@ -137,13 +137,13 @@ reload the feeds by sending the signal SIGHUP.
 In the input handling code you can then add a case:
 
 	case 'M':
-		plumb("markallread.sh", NULL);
+		forkexec((char *[]) { "markallread.sh", NULL });
 		break;
 
 or
 
 	case 'S':
-		plumb("syncnews.sh", NULL);
+		forkexec((char *[]) { "syncnews.sh", NULL });
 		break;
 
 The specified script should be in $PATH or an absolute path.

@@ -589,7 +589,7 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 }
 
 void
-plumb(const char *cmd, char *url)
+forkexec(char *argv[])
 {
 	switch (fork()) {
 	case -1:
@@ -597,7 +597,7 @@ plumb(const char *cmd, char *url)
 	case 0:
 		dup2(devnullfd, 1);
 		dup2(devnullfd, 2);
-		if (execlp(cmd, cmd, url, NULL) < 0)
+		if (execvp(argv[0], argv) == -1)
 			_exit(1);
 	}
 }
@@ -1437,7 +1437,7 @@ mousereport(int button, int release, int x, int y)
 					row = pane_row_get(p, p->pos);
 					item = (struct item *)row->data;
 					markread(p, p->pos, p->pos, 1);
-					plumb(plumber, item->fields[FieldLink]);
+					forkexec((char *[]) { plumber, item->fields[FieldLink], NULL });
 				}
 			}
 			break;
@@ -1732,7 +1732,7 @@ main(int argc, char *argv[])
 		selpane = PaneItems;
 	}
 
-	if ((devnullfd = open("/dev/null", O_WRONLY)) < 0)
+	if ((devnullfd = open("/dev/null", O_WRONLY)) == -1)
 		err(1, "open: /dev/null");
 
 	updatesidebar(onlynew);
@@ -1892,7 +1892,7 @@ nextpage:
 				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				plumb(plumber, item->fields[FieldEnclosure]);
+				forkexec((char *[]) { plumber, item->fields[FieldEnclosure], NULL });
 			}
 			break;
 		case 'm': /* toggle mouse mode */
@@ -1927,7 +1927,7 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				plumb(plumber, item->fields[FieldLink]);
+				forkexec((char *[]) { plumber, item->fields[FieldLink], NULL });
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
