@@ -1,4 +1,4 @@
-.Dd August 2, 2020
+.Dd August 7, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -91,10 +91,12 @@ The line is piped to the program specified in
 .Ev SFEED_PIPER .
 .It y
 Pipe the TAB-Separated Value for yanking the url.
-The used command to yank the url is "cut -f 3 | xclip -r".
+The line is piped to the program specified in
+.Ev SFEED_YANKER .
 .It E
 Pipe the TAB-Separated Value for yanking the enclosure.
-The used command to yank the enclosure is "cut -f 8 | xclip -r".
+The line is piped to the program specified in
+.Ev SFEED_YANKER .
 .It r
 Mark item as read.
 This will only work when
@@ -169,6 +171,10 @@ is also set, if unset the program used is "sfeed_markread unread".
 The marked items are piped to the program.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on succeed or non-zero on failure.
+.It Ev SFEED_YANKER
+A program where the url or enclosure is piped to for yanking it to the
+clipboard.
+By default this is "xclip -r".
 .It Ev SFEED_FEED_PATH
 This variable is set by
 .Nm

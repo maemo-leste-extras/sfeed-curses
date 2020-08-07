@@ -45,6 +45,7 @@
 
 static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
 static char *piper = "sfeed_content"; /* environment variable: $SFEED_PIPER */
+static char *yanker = "xclip -r"; /* environment variable: $SFEED_YANKER */
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
@@ -543,11 +544,12 @@ init(void)
 	needcleanup = 1;
 }
 
-/* pipe item to a program, if `wantoutput` is set then cleanup and restore the
-   terminal attribute settings, if not set then don't do that and also ignore
-   stdout and stderr. */
+/* pipe item line or item field to a program.
+   If `field` is -1 then pipe the TSV line, else a specified field.
+   if `wantoutput` is 1 then cleanup and restore the tty,
+   if 0 then don't do that and also write stdout and stderr to /dev/null. */
 void
-pipeitem(const char *cmd, struct item *item, int wantoutput)
+pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
 {
 	FILE *fp;
 	int i, pid, wpid, status;
@@ -567,10 +569,14 @@ pipeitem(const char *cmd, struct item *item, int wantoutput)
 		errno = 0;
 		if (!(fp = popen(cmd, "w")))
 			err(1, "popen");
-		for (i = 0; i < FieldLast; i++) {
-			if (i)
-				fputc('\t', fp);
-			fputs(item->fields[i], fp);
+		if (field == -1) {
+			for (i = 0; i < FieldLast; i++) {
+				if (i)
+					fputc('\t', fp);
+				fputs(item->fields[i], fp);
+			}
+		} else {
+			fputs(item->fields[field], fp);
 		}
 		fputc('\n', fp);
 		status = pclose(fp);
@@ -1449,7 +1455,7 @@ mousereport(int button, int release, int x, int y)
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				pipeitem(piper, item, 1);
+				pipeitem(piper, item, -1, 1);
 			}
 			break;
 		case 3: /* scroll up */
@@ -1686,6 +1692,8 @@ main(int argc, char *argv[])
 		plumber = tmp;
 	if ((tmp = getenv("SFEED_PIPER")))
 		piper = tmp;
+	if ((tmp = getenv("SFEED_YANKER")))
+		yanker = tmp;
 	urlfile = getenv("SFEED_URL_FILE");
 
 	panes[PaneFeeds].row_format = feed_row_format;
@@ -1933,18 +1941,18 @@ nextpage:
 		case 'c': /* items: pipe TSV line to program */
 		case 'p':
 		case '|':
-		case 'y': /* yank: pipe TSV line to yank url to clipboard */
-		case 'E': /* yank: pipe TSV line to yank enclosure to clipboard */
+		case 'y': /* yank: pipe TSV field to yank url to clipboard */
+		case 'E': /* yank: pipe TSV field to yank enclosure to clipboard */
 			if (selpane == PaneItems && panes[selpane].nrows) {
 				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				switch (ch) {
-				case 'y': pipeitem("cut -f 3 | xclip -r", item, 0); break;
-				case 'E': pipeitem("cut -f 8 | xclip -r", item, 0); break;
+				case 'y': pipeitem(yanker, item, FieldLink, 0); break;
+				case 'E': pipeitem(yanker, item, FieldEnclosure, 0); break;
 				default:
 					markread(p, p->pos, p->pos, 1);
-					pipeitem(piper, item, 1);
+					pipeitem(piper, item, -1, 1);
 					break;
 				}
 			}

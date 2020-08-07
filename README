@@ -59,9 +59,17 @@ Run-time dependencies
 
 - A (POSIX) shell.
 - A terminal (emulator) supporting UTF-8 and the used capabilities.
-- xclip for yanking the url or enclosure: can be changed easily.
-- awk, used by the sfeed_content and sfeed_markread script (optional).
-- lynx, used by the sfeed_content script (optional).
+
+
+Optional run-time dependencies
+------------------------------
+
+- xclip for yanking the url or enclosure. See $SFEED_YANKER to change it.
+- xdg-open, used as a plumber by default. See $SFEED_PLUMBER to change it.
+- awk, used by the sfeed_content and sfeed_markread script.
+  See the ENVIRONMENT VARIABLES section in the man page to change it.
+- lynx, used by the sfeed_content script to convert HTML content.
+  See the ENVIRONMENT VARIABLES section in the man page to change it.
 
 
 OS tested
