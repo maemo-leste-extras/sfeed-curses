@@ -1675,6 +1675,11 @@ main(int argc, char *argv[])
 	int ch, button, fd, x, y, release;
 	off_t off;
 
+#ifdef __OpenBSD__
+	if (pledge("stdio rpath tty proc exec", NULL) == -1)
+		err(1, "pledge");
+#endif
+
 	setlocale(LC_CTYPE, "");
 
 	if ((tmp = getenv("SFEED_PLUMBER")))
