@@ -365,8 +365,8 @@ void
 printpad(const char *s, int width)
 {
 	char buf[1024];
-	utf8pad(buf, sizeof(buf), s, width, ' ');
-	ttywrite(buf);
+	if (utf8pad(buf, sizeof(buf), s, width, ' ') != -1)
+		ttywrite(buf);
 }
 
 void
@@ -782,7 +782,8 @@ updategeom(void)
 
 	panes[PaneFeeds].x = 0;
 	panes[PaneFeeds].y = 0;
-	panes[PaneFeeds].height = win.height - 1; /* space for statusbar */
+	/* reserve space for statusbar */
+	panes[PaneFeeds].height = win.height > 1 ? win.height - 1 : 1;
 
 	/* NOTE: updatesidebar() must happen before this function for the
 	   remaining width */
@@ -798,7 +799,7 @@ updategeom(void)
 	}
 
 	panes[PaneItems].x = x;
-	panes[PaneItems].width = w - 1; /* rest and space for scrollbar */
+	panes[PaneItems].width = w > 0 ? w - 1 : 0; /* rest and space for scrollbar */
 	panes[PaneItems].height = panes[PaneFeeds].height;
 	panes[PaneItems].y = panes[PaneFeeds].y;
 
@@ -814,7 +815,7 @@ updategeom(void)
 	/* statusbar below */
 	statusbar.width = win.width;
 	statusbar.x = 0;
-	statusbar.y = win.height - 1;
+	statusbar.y = panes[PaneFeeds].height;
 
 	alldirty();
 }
@@ -1364,10 +1365,6 @@ draw(void)
 	struct item *item;
 	size_t i;
 
-	if (win.width <= 1 || win.height <= 3 ||
-	    (!panes[PaneFeeds].hidden && win.width <= panes[PaneFeeds].width + 2))
-		return;
-
 	if (win.dirty) {
 		clearscreen();
 		win.dirty = 0;
@@ -1479,8 +1476,10 @@ feed_row_format(struct pane *p, struct row *row)
 
 	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
 	               feed->totalnew, feed->total);
-	utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ');
-	snprintf(text, sizeof(text), "%s%s", bufw, counts);
+	if (utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ') != -1)
+		snprintf(text, sizeof(text), "%s%s", bufw, counts);
+	else
+		text[0] = '\0';
 
 	return text;
 }
