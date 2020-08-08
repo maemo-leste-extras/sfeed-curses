@@ -30,7 +30,7 @@
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
 #define SCROLLBAR_SYMBOL_TICK  " "
 
-/* see the README for some color theme examples. */
+/* See the README for some color theme examples. */
 #define THEME_ITEM_NORMAL()           do {                            } while(0)
 #define THEME_ITEM_FOCUS()            do {                            } while(0)
 #define THEME_ITEM_BOLD()             do { attrmode(ATTR_BOLD_ON);    } while(0)
@@ -109,7 +109,6 @@ struct statusbar {
 
 /* /UI */
 
-/* feed info */
 struct feed {
 	char         *name;     /* feed name */
 	char         *path;     /* path to feed or NULL for stdin */
@@ -315,7 +314,7 @@ colw(const char *s)
 	return col;
 }
 
-/* format `len' columns of characters. If string is shorter pad the rest
+/* Format `len' columns of characters. If string is shorter pad the rest
  * with characters `pad`. */
 int
 utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
@@ -544,7 +543,7 @@ init(void)
 	needcleanup = 1;
 }
 
-/* pipe item line or item field to a program.
+/* Pipe item line or item field to a program.
    If `field` is -1 then pipe the TSV line, else a specified field.
    if `wantoutput` is 1 then cleanup and restore the tty,
    if 0 then don't do that and also write stdout and stderr to /dev/null. */
@@ -738,7 +737,7 @@ pane_draw(struct pane *p)
 	p->dirty = 0;
 }
 
-/* cycle visible pane in a direction, but don't cycle back */
+/* Cycle visible pane in a direction, but don't cycle back. */
 void
 cyclepanen(int n)
 {
@@ -762,7 +761,7 @@ cyclepanen(int n)
 	}
 }
 
-/* cycle visible panes */
+/* Cycle visible panes. */
 void
 cyclepane(void)
 {
@@ -1016,7 +1015,7 @@ statusbar_update(struct statusbar *s, const char *text)
 	s->dirty = 1;
 }
 
-/* line to item, modifies and splits line in-place */
+/* Line to item, modifies and splits line in-place. */
 int
 linetoitem(char *line, struct item *item)
 {
@@ -1189,7 +1188,7 @@ feed_setenv(struct feed *f)
 		unsetenv("SFEED_FEED_PATH");
 }
 
-/* change feed, have one file open, reopen file if needed */
+/* Change feed, have one file open, reopen file if needed. */
 void
 feeds_set(struct feed *f)
 {
@@ -1370,7 +1369,7 @@ draw(void)
 		win.dirty = 0;
 	}
 
-	/* NOTE: theres the same amount and indices of panes and scrollbars. */
+	/* There is the same amount and indices of panes and scrollbars. */
 	for (i = 0; i < LEN(panes); i++) {
 		pane_setfocus(&panes[i], i == selpane);
 		pane_draw(&panes[i]);
@@ -1382,7 +1381,7 @@ draw(void)
 		scrollbar_draw(&scrollbars[i]);
 	}
 
-	/* if item selection text changed, update the status text */
+	/* If item selection text changed then update the status text. */
 	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = (struct item *)row->data;
 		statusbar_update(&statusbar, item->fields[FieldLink]);
@@ -1463,7 +1462,7 @@ mousereport(int button, int release, int x, int y)
 	}
 }
 
-/* custom formatter for feed row */
+/* Custom formatter for feed row. */
 char *
 feed_row_format(struct pane *p, struct row *row)
 {
@@ -1529,7 +1528,7 @@ item_row_get(struct pane *p, off_t pos)
 }
 #endif
 
-/* custom formatter for item row */
+/* Custom formatter for item row. */
 char *
 item_row_format(struct pane *p, struct row *row)
 {
