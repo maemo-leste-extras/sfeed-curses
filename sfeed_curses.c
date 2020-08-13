@@ -1068,7 +1068,6 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 	size_t cap, i, linesize = 0, nitems;
 	ssize_t linelen;
 	off_t offset;
-	int ret = -1;
 
 	cap = nitems = 0;
 	offset = 0;
@@ -1107,16 +1106,17 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 		if (linelen <= 0 || feof(fp))
 			break;
 	}
+	free(line);
 	itemsret->cap = cap;
 	itemsret->items = items;
 	itemsret->len = nitems;
-	ret = 0;
+	return 0;
 
 err:
-	if (ret)
-		feed_items_free(itemsret);
 	free(line);
-	return ret;
+	feed_items_free(itemsret);
+
+	return -1;
 }
 
 void
