@@ -570,7 +570,7 @@ pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
 
 		errno = 0;
 		if (!(fp = popen(cmd, "w")))
-			die("popen");
+			die("popen: %s", cmd);
 		if (field == -1) {
 			for (i = 0; i < FieldLast; i++) {
 				if (i)
@@ -1596,7 +1596,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 
 		errno = 0;
 		if (!(fp = popen(cmd, "w")))
-			die("popen");
+			die("popen: %s", cmd);
 
 		for (i = from; i <= to; i++) {
 			row = &(p->rows[i]); /* use pane_row_get: no need for lazyload */
