@@ -109,14 +109,6 @@ struct statusbar {
 
 /* /UI */
 
-struct feed {
-	char         *name;     /* feed name */
-	char         *path;     /* path to feed or NULL for stdin */
-	unsigned long totalnew; /* amount of new items per feed */
-	unsigned long total;    /* total items */
-	FILE *fp;               /* file pointer */
-};
-
 struct item {
 	char *link; /* separate link field (always loaded in case of urlfile) */
 	char *fields[FieldLast];
@@ -125,6 +117,20 @@ struct item {
 	int timeok;
 	int isnew;
 	off_t offset; /* line offset in file for lazyload */
+};
+
+struct items {
+	struct item *items;     /* array of items */
+	size_t len;             /* amount of items */
+	size_t cap;             /* available capacity */
+};
+
+struct feed {
+	char         *name;     /* feed name */
+	char         *path;     /* path to feed or NULL for stdin */
+	unsigned long totalnew; /* amount of new items per feed */
+	unsigned long total;    /* total items */
+	FILE *fp;               /* file pointer */
 };
 
 #undef err
@@ -1042,28 +1048,40 @@ linetoitem(char *line, struct item *item)
 	return 0;
 }
 
-int
-feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
+void
+feed_items_free(struct items *items)
 {
-	struct item *item;
+	size_t i;
+
+	for (i = 0; i < items->len; i++) {
+		free(items->items[i].line);
+		free(items->items[i].link);
+	}
+	free(items->items);
+	items->items = NULL;
+	items->len = 0;
+	items->cap = 0;
+}
+
+int
+feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
+{
+	struct item *item, *items = NULL;
 	char *line = NULL;
-	size_t cap, i, linesize = 0;
+	size_t cap, i, linesize = 0, nitems;
 	ssize_t linelen;
 	off_t offset;
 	int ret = -1;
 
-	*items = NULL;
-	*nitems = 0;
-
-	cap = 0;
+	cap = nitems = 0;
 	offset = 0;
 	for (i = 0; ; i++) {
 		if (i + 1 >= cap) {
 			cap = cap ? cap * 2 : 16;
-			*items = erealloc(*items, cap * sizeof(struct item));
+			items = erealloc(items, cap * sizeof(struct item));
 		}
 		if ((linelen = getline(&line, &linesize, fp)) > 0) {
-			item = (*items) + i;
+			item = &items[i];
 
 			item->offset = offset;
 			offset += linelen;
@@ -1085,16 +1103,21 @@ feed_getitems(struct feed *f, FILE *fp, struct item **items, size_t *nitems)
 			linetoitem(estrdup(line), item);
 #endif
 
-			(*nitems)++;
+			nitems++;
 		}
 		if (ferror(fp))
 			goto err;
 		if (linelen <= 0 || feof(fp))
 			break;
 	}
+	itemsret->cap = cap;
+	itemsret->items = items;
+	itemsret->len = nitems;
 	ret = 0;
 
 err:
+	if (ret)
+		feed_items_free(itemsret);
 	free(line);
 	return ret;
 }
@@ -1125,27 +1148,21 @@ updatenewitems(struct feed *f)
 void
 feed_load(struct feed *f, FILE *fp)
 {
-	static struct item *items = NULL;
-	static size_t nitems = 0;
+	static struct items items;
 	struct pane *p;
 	size_t i;
 
-	for (i = 0; i < nitems; i++) {
-		free(items[i].line);
-		free(items[i].link);
-	}
-	free(items);
-
-	if (feed_getitems(f, fp, &items, &nitems) == -1)
+	feed_items_free(&items);
+	if (feed_items_get(f, fp, &items) == -1)
 		err(1, "%s: %s", __func__, f->name);
 
 	p = &panes[PaneItems];
 	p->pos = 0;
-	p->nrows = nitems;
+	p->nrows = items.len;
 	free(p->rows);
-	p->rows = ecalloc(sizeof(p->rows[0]), nitems + 1);
-	for (i = 0; i < nitems; i++)
-		p->rows[i].data = &items[i]; /* do not use pane_row_get */
+	p->rows = ecalloc(sizeof(p->rows[0]), items.len + 1);
+	for (i = 0; i < items.len; i++)
+		p->rows[i].data = &(items.items[i]); /* do not use pane_row_get */
 
 	updatenewitems(f);
 
