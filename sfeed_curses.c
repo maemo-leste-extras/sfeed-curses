@@ -133,9 +133,6 @@ struct feed {
 	FILE *fp;               /* file pointer */
 };
 
-#undef err
-void err(int, const char *, ...);
-
 void alldirty(void);
 void cleanup(void);
 void draw(void);
@@ -190,9 +187,9 @@ ttywrite(const char *s)
 	return write(1, s, strlen(s));
 }
 
-/* like BSD err(), but calls cleanup() and _exit(). */
+/* print to stderr, call cleanup() and _exit(). */
 void
-err(int code, const char *fmt, ...)
+die(const char *fmt, ...)
 {
 	va_list ap;
 	int saved_errno;
@@ -208,7 +205,7 @@ err(int code, const char *fmt, ...)
 		dprintf(2, ": %s", strerror(saved_errno));
 	write(2, "\n", 1);
 
-	_exit(code);
+	_exit(1);
 }
 
 void *
@@ -217,7 +214,7 @@ erealloc(void *ptr, size_t size)
 	void *p;
 
 	if (!(p = realloc(ptr, size)))
-		err(1, "realloc");
+		die("realloc");
 	return p;
 }
 
@@ -227,7 +224,7 @@ ecalloc(size_t nmemb, size_t size)
 	void *p;
 
 	if (!(p = calloc(nmemb, size)))
-		err(1, "calloc");
+		die("calloc");
 	return p;
 }
 
@@ -237,7 +234,7 @@ estrdup(const char *s)
 	char *p;
 
 	if (!(p = strdup(s)))
-		err(1, "strdup");
+		die("strdup");
 	return p;
 }
 
@@ -507,7 +504,7 @@ resizewin(void)
 {
 	/*struct winsize winsz;
 	if (ioctl(0, TIOCGWINSZ, &winsz) == -1)
-		err(1, "ioctl");
+		die("ioctl");
 	win_update(&win, winsz.ws_col, winsz.ws_row);*/
 
 	setupterm(NULL, 1, NULL);
@@ -564,7 +561,7 @@ pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
 
 	switch ((pid = fork())) {
 	case -1:
-		err(1, "fork");
+		die("fork");
 	case 0:
 		if (!wantoutput) {
 			dup2(devnullfd, 1);
@@ -573,7 +570,7 @@ pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
 
 		errno = 0;
 		if (!(fp = popen(cmd, "w")))
-			err(1, "popen");
+			die("popen");
 		if (field == -1) {
 			for (i = 0; i < FieldLast; i++) {
 				if (i)
@@ -604,7 +601,7 @@ forkexec(char *argv[])
 {
 	switch (fork()) {
 	case -1:
-		err(1, "fork");
+		die("fork");
 	case 0:
 		dup2(devnullfd, 1);
 		dup2(devnullfd, 2);
@@ -911,14 +908,14 @@ readch(void)
 		switch (select(1, &readfds, NULL, NULL, &tv)) {
 		case -1:
 			if (errno != EINTR)
-				err(1, "select");
+				die("select");
 			return -2; /* EINTR: like a signal */
 		case 0:
 			return -3; /* time-out */
 		}
 
 		switch (read(0, &b, 1)) {
-		case -1: err(1, "read");
+		case -1: die("read");
 		case 0: return EOF;
 		default: return (int)b;
 		}
@@ -1154,7 +1151,7 @@ feed_load(struct feed *f, FILE *fp)
 
 	feed_items_free(&items);
 	if (feed_items_get(f, fp, &items) == -1)
-		err(1, "%s: %s", __func__, f->name);
+		die("%s: %s", __func__, f->name);
 
 	p = &panes[PaneItems];
 	p->pos = 0;
@@ -1218,7 +1215,7 @@ feeds_set(struct feed *f)
 
 	if (f && f->path) {
 		if (!f->fp && !(f->fp = fopen(f->path, "rb")))
-			err(1, "fopen: %s", f->path);
+			die("fopen: %s", f->path);
 	}
 
 	feed_setenv(f);
@@ -1233,7 +1230,7 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 	size_t i;
 
 	if ((comparetime = time(NULL)) == -1)
-		err(1, "time");
+		die("time");
 	/* 1 day is old news */
 	comparetime -= 86400;
 
@@ -1243,10 +1240,10 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 		if (f->path) {
 			if (f->fp) {
 				if (fseek(f->fp, 0, SEEK_SET))
-					err(1, "fseek: %s", f->path);
+					die("fseek: %s", f->path);
 			} else {
 				if (!(f->fp = fopen(f->path, "rb")))
-					err(1, "fopen: %s", f->path);
+					die("fopen: %s", f->path);
 			}
 		}
 		if (!f->fp) {
@@ -1527,7 +1524,7 @@ item_row_get(struct pane *p, off_t pos)
 	f = curfeed;
 	if (f && f->path && f->fp && !item->line) {
 		if (fseek(f->fp, item->offset, SEEK_SET))
-			err(1, "fseek: %s", f->path);
+			die("fseek: %s", f->path);
 		linelen = getline(&line, &linesize, f->fp);
 
 		if (linelen <= 0)
@@ -1592,14 +1589,14 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 
 	switch ((pid = fork())) {
 	case -1:
-		err(1, "fork");
+		die("fork");
 	case 0:
 		dup2(devnullfd, 1);
 		dup2(devnullfd, 2);
 
 		errno = 0;
 		if (!(fp = popen(cmd, "w")))
-			err(1, "popen");
+			die("popen");
 
 		for (i = from; i <= to; i++) {
 			row = &(p->rows[i]); /* use pane_row_get: no need for lazyload */
@@ -1698,7 +1695,7 @@ main(int argc, char *argv[])
 
 #ifdef __OpenBSD__
 	if (pledge("stdio rpath tty proc exec", NULL) == -1)
-		err(1, "pledge");
+		die("pledge");
 #endif
 
 	setlocale(LC_CTYPE, "");
@@ -1724,7 +1721,7 @@ main(int argc, char *argv[])
 		f = &feeds[0];
 		f->name = "stdin";
 		if (!(f->fp = fdopen(0, "rb")))
-			err(1, "fdopen");
+			die("fdopen");
 	} else {
 		for (i = 1; i < argc; i++) {
 			f = &feeds[i - 1];
@@ -1740,9 +1737,9 @@ main(int argc, char *argv[])
 
 	if (!isatty(0)) {
 		if ((fd = open("/dev/tty", O_RDONLY)) == -1)
-			err(1, "open: /dev/tty");
+			die("open: /dev/tty");
 		if (dup2(fd, 0) == -1)
-			err(1, "dup2: /dev/tty");
+			die("dup2: /dev/tty");
 	}
 	if (argc == 1)
 		feeds[0].fp = NULL;
@@ -1756,7 +1753,7 @@ main(int argc, char *argv[])
 	}
 
 	if ((devnullfd = open("/dev/null", O_WRONLY)) == -1)
-		err(1, "open: /dev/null");
+		die("open: /dev/null");
 
 	updatesidebar(onlynew);
 	updatetitle();
