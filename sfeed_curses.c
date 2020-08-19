@@ -1743,7 +1743,8 @@ main(int argc, char *argv[])
 		if ((fd = open("/dev/tty", O_RDONLY)) == -1)
 			die("open: /dev/tty");
 		if (dup2(fd, 0) == -1)
-			die("dup2: /dev/tty");
+			die("dup2(%d, 0): /dev/tty -> stdin", fd);
+		close(fd);
 	}
 	if (argc == 1)
 		feeds[0].fp = NULL;
