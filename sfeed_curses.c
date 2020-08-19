@@ -441,7 +441,7 @@ attrmode(int mode)
 	case ATTR_RESET: p = exit_attribute_mode; break;
 	case ATTR_BOLD_ON: p = enter_bold_mode; break;
 	case ATTR_FAINT_ON: p = enter_dim_mode; break;
-	case ATTR_REVERSE_ON: p = enter_standout_mode; break;
+	case ATTR_REVERSE_ON: p = enter_reverse_mode; break;
 	default: return;
 	}
 	ttywrite(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
