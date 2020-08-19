@@ -522,6 +522,8 @@ init(void)
 	tcgetattr(0, &tsave);
 	memcpy(&tcur, &tsave, sizeof(tcur));
 	tcur.c_lflag &= ~(ECHO|ICANON);
+	tcur.c_cc[VMIN] = 1;
+	tcur.c_cc[VTIME] = 0;
 	tcsetattr(0, TCSANOW, &tcur);
 
 	resizewin();
