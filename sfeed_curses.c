@@ -173,8 +173,9 @@ ttywritef(const char *fmt, ...)
 	int n;
 
 	va_start(ap, fmt);
-	n = vdprintf(1, fmt, ap);
+	n = vfprintf(stdout, fmt, ap);
 	va_end(ap);
+	fflush(stdout);
 
 	return n;
 }
@@ -198,11 +199,12 @@ die(const char *fmt, ...)
 	cleanup();
 
 	va_start(ap, fmt);
-	vdprintf(2, fmt, ap);
+	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 
 	if (saved_errno)
-		dprintf(2, ": %s", strerror(saved_errno));
+		fprintf(stderr, ": %s", strerror(saved_errno));
+	fflush(stderr);
 	write(2, "\n", 1);
 
 	_exit(1);
