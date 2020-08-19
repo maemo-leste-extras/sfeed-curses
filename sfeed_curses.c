@@ -411,24 +411,32 @@ cursormode(int on)
 }
 
 void
+cursormove(int x, int y)
+{
+	/*ttywritef("\x1b[%d;%dH", y + 1, x + 1);*/
+	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+}
+
+void
 cursorsave(void)
 {
-	/*ttywrite("\x1b""7");*/
-	ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	/*ttywrite("\x1b""7");*/ /* save cursor */
+
+	/* do not save the cursor if it won't be restored anyway */
+	if (cursor_invisible)
+		ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursorrestore(void)
 {
-	/*ttywrite("\x1b""8");*/
-	ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-}
+	/*ttywrite("\x1b""8");*/ /* restore cursor */
 
-void
-cursormove(int x, int y)
-{
-	/*ttywritef("\x1b[%d;%dH", y + 1, x + 1);*/
-	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+	/* if the cursor cannot be hidden then move to a consistent position */
+	if (cursor_invisible)
+		ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	else
+		cursormove(0, 0);
 }
 
 void
