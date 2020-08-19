@@ -1299,15 +1299,13 @@ int
 getsidebarwidth(void)
 {
 	struct feed *feed;
-	static char text[1024];
 	int i, len, width = 0;
 
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
 
-		snprintf(text, sizeof(text), "%s (%lu/%lu)",
-		         feed->name, feed->totalnew, feed->total);
-		len = colw(text);
+		len = snprintf(NULL, 0, " (%lu/%lu)", feed->totalnew, feed->total) +
+			colw(feed->name);
 		if (len > width)
 			width = len;
 
