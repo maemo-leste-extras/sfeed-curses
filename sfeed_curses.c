@@ -1001,7 +1001,9 @@ statusbar_draw(struct statusbar *s)
 	cursorsave();
 	cursormove(s->x, s->y);
 	THEME_STATUSBAR();
-	printpad(s->text, s->width);
+	/* terminals without xenl (eat newline glitch) mess up scrolling when
+	   using the last cell on the last line on the screen. */
+	printpad(s->text, s->width - (!eat_newline_glitch));
 	attrmode(ATTR_RESET);
 	cursorrestore();
 	s->dirty = 0;
