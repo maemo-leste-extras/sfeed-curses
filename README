@@ -78,8 +78,11 @@ OS tested
 - Linux (compilers: clang, gcc, tcc, libc: glibc, musl).
 - OpenBSD (clang, gcc).
 - NetBSD
+- FreeBSD
+- DragonFlyBSD
+- Illumos (OpenIndiana).
 - Windows (cygwin gcc + mintty).
-- HaikuOS (works, but requires [v]dprintf implementation).
+- HaikuOS
 
 
 Known terminal issues
