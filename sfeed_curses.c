@@ -43,9 +43,11 @@
 #define THEME_INPUT_LABEL()           do { attrmode(ATTR_REVERSE_ON); } while(0)
 #define THEME_INPUT_NORMAL()          do {                            } while(0)
 
-static char *plumber = "xdg-open"; /* environment variable: $SFEED_PLUMBER */
-static char *piper = "sfeed_content"; /* environment variable: $SFEED_PIPER */
-static char *yanker = "xclip -r"; /* environment variable: $SFEED_YANKER */
+static char *plumbercmd = "xdg-open"; /* env variable: $SFEED_PLUMBER */
+static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */
+static char *yankercmd = "xclip -r"; /* env variable: $SFEED_YANKER */
+static char *markreadcmd = "sfeed_markread read"; /* env variable: $SFEED_MARK_READ */
+static char *markunreadcmd = "sfeed_markread unread"; /* env variable: $SFEED_MARK_UNREAD */
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
@@ -1465,7 +1467,7 @@ mousereport(int button, int release, int x, int y)
 					row = pane_row_get(p, p->pos);
 					item = (struct item *)row->data;
 					markread(p, p->pos, p->pos, 1);
-					forkexec((char *[]) { plumber, item->fields[FieldLink], NULL });
+					forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL });
 				}
 			}
 			break;
@@ -1477,7 +1479,7 @@ mousereport(int button, int release, int x, int y)
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				pipeitem(piper, item, -1, 1);
+				pipeitem(pipercmd, item, -1, 1);
 			}
 			break;
 		case 3: /* scroll up */
@@ -1591,13 +1593,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 	if (!urlfile || !p->nrows)
 		return;
 
-	if (isread) {
-		if (!(cmd = getenv("SFEED_MARK_READ")))
-			cmd = "sfeed_markread read";
-	} else {
-		if (!(cmd = getenv("SFEED_MARK_UNREAD")))
-			cmd = "sfeed_markread unread";
-	}
+	cmd = isread ? markreadcmd : markunreadcmd;
 
 	switch ((pid = fork())) {
 	case -1:
@@ -1713,11 +1709,15 @@ main(int argc, char *argv[])
 	setlocale(LC_CTYPE, "");
 
 	if ((tmp = getenv("SFEED_PLUMBER")))
-		plumber = tmp;
+		plumbercmd = tmp;
 	if ((tmp = getenv("SFEED_PIPER")))
-		piper = tmp;
+		pipercmd = tmp;
 	if ((tmp = getenv("SFEED_YANKER")))
-		yanker = tmp;
+		yankercmd = tmp;
+	if ((tmp = getenv("SFEED_MARK_READ")))
+		markreadcmd = "sfeed_markread read";
+	if ((tmp = getenv("SFEED_MARK_UNREAD")))
+		markunreadcmd = "sfeed_markread unread";
 	urlfile = getenv("SFEED_URL_FILE");
 
 	panes[PaneFeeds].row_format = feed_row_format;
@@ -1925,7 +1925,7 @@ nextpage:
 				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				forkexec((char *[]) { plumber, item->fields[FieldEnclosure], NULL });
+				forkexec((char *[]) { plumbercmd, item->fields[FieldEnclosure], NULL });
 			}
 			break;
 		case 'm': /* toggle mouse mode */
@@ -1960,7 +1960,7 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				forkexec((char *[]) { plumber, item->fields[FieldLink], NULL });
+				forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL });
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
@@ -1973,11 +1973,11 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				switch (ch) {
-				case 'y': pipeitem(yanker, item, FieldLink, 0); break;
-				case 'E': pipeitem(yanker, item, FieldEnclosure, 0); break;
+				case 'y': pipeitem(yankercmd, item, FieldLink, 0); break;
+				case 'E': pipeitem(yankercmd, item, FieldEnclosure, 0); break;
 				default:
 					markread(p, p->pos, p->pos, 1);
-					pipeitem(piper, item, -1, 1);
+					pipeitem(pipercmd, item, -1, 1);
 					break;
 				}
 			}
