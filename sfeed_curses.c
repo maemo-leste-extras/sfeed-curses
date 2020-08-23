@@ -446,15 +446,21 @@ cursorrestore(void)
 void
 attrmode(int mode)
 {
-	char *p;
-
-	/*ttywritef("\x1b[%dm", mode);*/
 	switch (mode) {
-	case ATTR_RESET: p = exit_attribute_mode; break;
-	case ATTR_BOLD_ON: p = enter_bold_mode; break;
-	case ATTR_FAINT_ON: p = enter_dim_mode; break;
-	case ATTR_REVERSE_ON: p = enter_reverse_mode; break;
-	default: return;
+	case ATTR_RESET:
+		ttywrite(tparm(exit_attribute_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		break;
+	case ATTR_BOLD_ON:
+		ttywrite(tparm(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		break;
+	case ATTR_FAINT_ON:
+		ttywrite(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		break;
+	case ATTR_REVERSE_ON:
+		ttywrite(tparm(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		break;
+	default:
+		return;
 	}
 	ttywrite(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
