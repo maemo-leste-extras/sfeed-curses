@@ -4,7 +4,6 @@
 #include <sys/wait.h>
 
 #include <ctype.h>
-#include <curses.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
@@ -13,11 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <term.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #include <wchar.h>
+
+/* curses */
+#include <curses.h>
+#include <term.h>
 
 /* Allow to lazyload items when a file is specified? This saves memory but
    increases some latency when seeking items. It also causes issues if the
@@ -397,7 +399,6 @@ updatetitle(void)
 void
 appmode(int on)
 {
-	/*ttywrite(on ? "\x1b[?1049h" : "\x1b[?1049l");*/ /* smcup, rmcup */
 	ttywrite(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
@@ -410,22 +411,18 @@ mousemode(int on)
 void
 cursormode(int on)
 {
-	/*ttywrite(on ? "\x1b[?25h" : "\x1b[?25l");*/ /* DECTCEM (in)Visible cursor */
 	ttywrite(tparm(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursormove(int x, int y)
 {
-	/*ttywritef("\x1b[%d;%dH", y + 1, x + 1);*/
 	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursorsave(void)
 {
-	/*ttywrite("\x1b""7");*/ /* save cursor */
-
 	/* do not save the cursor if it won't be restored anyway */
 	if (cursor_invisible)
 		ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -434,8 +431,6 @@ cursorsave(void)
 void
 cursorrestore(void)
 {
-	/*ttywrite("\x1b""8");*/ /* restore cursor */
-
 	/* if the cursor cannot be hidden then move to a consistent position */
 	if (cursor_invisible)
 		ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -462,20 +457,17 @@ attrmode(int mode)
 	default:
 		return;
 	}
-	ttywrite(tparm(p, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cleareol(void)
 {
-	/*ttywrite("\x1b[K");*/
 	ttywrite(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 clearscreen(void)
 {
-	/*ttywrite("\x1b[H\x1b[2J");*/
 	ttywrite(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
@@ -520,11 +512,6 @@ win_update(struct win *w, int width, int height)
 void
 resizewin(void)
 {
-	/*struct winsize winsz;
-	if (ioctl(0, TIOCGWINSZ, &winsz) == -1)
-		die("ioctl");
-	win_update(&win, winsz.ws_col, winsz.ws_row);*/
-
 	setupterm(NULL, 1, NULL);
 	/* termios globals are changed: `lines` and `columns` */
 	win_update(&win, columns, lines);

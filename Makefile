@@ -20,6 +20,7 @@ BIN = sfeed_curses
 SCRIPTS = sfeed_content sfeed_markread
 
 SRC = ${BIN:=.c}
+HDR = minicurses.h
 
 MAN1 = ${BIN:=.1}\
 	${SCRIPTS:=.1}
@@ -44,7 +45,7 @@ ${OBJ}:
 dist:
 	rm -rf "${NAME}-${VERSION}"
 	mkdir -p "${NAME}-${VERSION}"
-	cp -f ${MAN1} ${DOC} ${SRC} ${SCRIPTS} Makefile \
+	cp -f ${MAN1} ${DOC} ${HDR} ${SRC} ${SCRIPTS} Makefile \
 		"${NAME}-${VERSION}"
 	# make tarball
 	tar cf - "${NAME}-${VERSION}" | \

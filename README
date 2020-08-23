@@ -44,7 +44,7 @@ Dependencies
 
 - C compiler (C99).
 - libc (recommended: C99 and POSIX >= 200809).
-- curses (typically ncurses).
+- curses (typically ncurses), optional but recommended: but see minicurses.h.
 
 
 Optional dependencies
