@@ -1364,7 +1364,9 @@ sighandler(int signo)
 	case SIGINT:
 	case SIGTERM:
 	case SIGWINCH:
-		sigstate = signo;
+		/* SIGTERM is more important, do not override it */
+		if (sigstate != SIGTERM)
+			sigstate = signo;
 		break;
 	}
 }
@@ -2000,7 +2002,6 @@ event:
 		else if (ch == -3 && sigstate == 0)
 			continue; /* just a time-out, nothing to do */
 
-		/* handle last signal */
 		switch (sigstate) {
 		case SIGHUP:
 			feeds_reloadall();
