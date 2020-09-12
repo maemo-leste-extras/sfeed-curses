@@ -140,13 +140,14 @@ struct feed {
 void alldirty(void);
 void cleanup(void);
 void draw(void);
-int isurlnew(const char *);
 void markread(struct pane *, off_t, off_t, int);
 void pane_draw(struct pane *);
-void readurls(void);
 void sighandler(int);
 void updategeom(void);
 void updatesidebar(int);
+void urls_free(void);
+int urls_isnew(const char *);
+void urls_read(void);
 
 static struct statusbar statusbar;
 static struct pane panes[PaneLast];
@@ -1144,7 +1145,7 @@ updatenewitems(struct feed *f)
 		row = &(p->rows[i]); /* do not use pane_row_get */
 		item = (struct item *)row->data;
 		if (urlfile)
-			item->isnew = isurlnew(item->link);
+			item->isnew = urls_isnew(item->link);
 		else
 			item->isnew = (item->timeok && item->timestamp >= comparetime);
 		row->bold = item->isnew;
@@ -1193,7 +1194,7 @@ feed_count(struct feed *f, FILE *fp)
 		parseline(line, fields);
 
 		if (urlfile) {
-			f->totalnew += isurlnew(fields[FieldLink]);
+			f->totalnew += urls_isnew(fields[FieldLink]);
 		} else {
 			parsedtime = 0;
 			if (!strtotime(fields[FieldUnixTimestamp], &parsedtime))
@@ -1283,9 +1284,10 @@ feeds_reloadall(void)
 	off_t pos;
 
 	pos = panes[PaneItems].pos; /* store numeric position */
-	readurls();
 	feeds_set(curfeed); /* close and reopen feed if possible */
+	urls_read();
 	feeds_load(feeds, nfeeds);
+	urls_free();
 	/* restore numeric position */
 	pane_setpos(&panes[PaneItems], pos);
 	updatesidebar(onlynew);
@@ -1450,12 +1452,13 @@ mousereport(int button, int release, int x, int y)
 				break;
 			pane_setpos(p, pos);
 			if (selpane == PaneFeeds) {
-				readurls();
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
+				urls_read();
 				if (f->fp)
 					feed_load(f, f->fp);
+				urls_free();
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
 				updatetitle();
@@ -1642,24 +1645,36 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 }
 
 int
-urlcmp(const void *v1, const void *v2)
+urls_cmp(const void *v1, const void *v2)
 {
 	return strcmp(*((char **)v1), *((char **)v2));
 }
 
+int
+urls_isnew(const char *url)
+{
+	return bsearch(&url, urls, nurls, sizeof(char *), urls_cmp) == NULL;
+}
+
 void
-readurls(void)
+urls_free(void)
+{
+	while (nurls > 0)
+		free(urls[--nurls]);
+	free(urls);
+	urls = NULL;
+	nurls = 0;
+}
+
+void
+urls_read(void)
 {
 	FILE *fp;
 	char *line = NULL;
 	size_t linesiz = 0, cap = 0;
 	ssize_t n;
 
-	while (nurls > 0)
-		free(urls[--nurls]);
-	free(urls);
-	urls = NULL;
-	nurls = 0;
+	urls_free();
 
 	if (!urlfile || !(fp = fopen(urlfile, "rb")))
 		return;
@@ -1676,13 +1691,7 @@ readurls(void)
 	fclose(fp);
 	free(line);
 
-	qsort(urls, nurls, sizeof(char *), urlcmp);
-}
-
-int
-isurlnew(const char *url)
-{
-	return bsearch(&url, urls, nurls, sizeof(char *), urlcmp) == NULL;
+	qsort(urls, nurls, sizeof(char *), urls_cmp);
 }
 
 int
@@ -1740,9 +1749,10 @@ main(int argc, char *argv[])
 		}
 		nfeeds = argc - 1;
 	}
-	readurls();
 	feeds_set(&feeds[0]);
+	urls_read();
 	feeds_load(feeds, nfeeds);
+	urls_free();
 
 	if (!isatty(0)) {
 		if ((fd = open("/dev/tty", O_RDONLY)) == -1)
@@ -1944,12 +1954,13 @@ nextpage:
 		case '\n':
 			p = &panes[selpane];
 			if (selpane == PaneFeeds && panes[selpane].nrows) {
-				readurls();
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
+				urls_read();
 				if (f->fp)
 					feed_load(f, f->fp);
+				urls_free();
 				/* redraw row: counts could be changed */
 				updatesidebar(onlynew);
 				updatetitle();
