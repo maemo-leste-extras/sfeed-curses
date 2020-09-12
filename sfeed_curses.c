@@ -961,7 +961,17 @@ lineeditor(void)
 		} else if (ch >= ' ') {
 			write(1, &ch, 1);
 		} else if (ch < 0) {
-			continue; /* process signals later */
+			switch (sigstate) {
+			case 0:
+			case SIGWINCH:
+				continue; /* process signals later */
+			case SIGINT:
+				sigstate = 0; /* exit prompt, do not quit */
+			case SIGTERM:
+				break; /* exit prompt and quit */
+			}
+			free(input);
+			return NULL;
 		}
 		input[nchars++] = ch;
 	}
