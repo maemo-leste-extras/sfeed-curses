@@ -37,7 +37,7 @@ OBJ = ${SRC:.c=.o}
 ${OBJ}:
 
 .o:
-	${CC} ${SFEED_LDFLAGS} -o $@ $<
+	${CC} -o $@ $< ${SFEED_LDFLAGS}
 
 .c.o:
 	${CC} ${SFEED_CFLAGS} ${SFEED_CPPFLAGS} -o $@ -c $<
