@@ -16,6 +16,11 @@ SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
 # Linux: some distros use ncurses and require -lncurses.
 #SFEED_LDFLAGS = ${LDFLAGS} -lncurses
 
+# Gentoo Linux: some distros might also require -ltinfo and -D_DEFAULT_SOURCE
+# to prevent warnings about feature macros.
+#SFEED_LDFLAGS = ${LDFLAGS} -lcurses -ltinfo
+#SFEED_CPPFLAGS = -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
+
 BIN = sfeed_curses
 SCRIPTS = sfeed_content sfeed_markread
 
