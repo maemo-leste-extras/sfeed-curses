@@ -1731,9 +1731,9 @@ main(int argc, char *argv[])
 	if ((tmp = getenv("SFEED_YANKER")))
 		yankercmd = tmp;
 	if ((tmp = getenv("SFEED_MARK_READ")))
-		markreadcmd = "sfeed_markread read";
+		markreadcmd = tmp;
 	if ((tmp = getenv("SFEED_MARK_UNREAD")))
-		markunreadcmd = "sfeed_markread unread";
+		markunreadcmd = tmp;
 	urlfile = getenv("SFEED_URL_FILE");
 
 	panes[PaneFeeds].row_format = feed_row_format;
