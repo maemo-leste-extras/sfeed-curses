@@ -59,7 +59,8 @@ enum Pane { PaneFeeds, PaneItems, PaneLast };
 
 enum {
 	FieldUnixTimestamp = 0, FieldTitle, FieldLink, FieldContent,
-	FieldContentType, FieldId, FieldAuthor, FieldEnclosure, FieldLast
+	FieldContentType, FieldId, FieldAuthor, FieldEnclosure,
+	FieldCategory, FieldLast
 };
 
 struct win {
