@@ -627,8 +627,7 @@ pane_row_get(struct pane *p, off_t pos)
 
 	if (p->row_get)
 		return p->row_get(p, pos);
-	else
-		return p->rows + pos;
+	return p->rows + pos;
 }
 
 char *
@@ -637,8 +636,7 @@ pane_row_text(struct pane *p, struct row *row)
 	/* custom formatter */
 	if (p->row_format)
 		return p->row_format(p, row);
-	else
-		return row->text;
+	return row->text;
 }
 
 int
