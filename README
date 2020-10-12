@@ -106,7 +106,7 @@ Color themes
 #define THEME_ITEM_NORMAL()           do {                          } while(0)
 #define THEME_ITEM_FOCUS()            do {                          } while(0)
 #define THEME_ITEM_BOLD()             do { attrmode(ATTR_BOLD_ON);  } while(0)
-#define THEME_ITEM_SELECTED()         do { ttywrite("\x1b[93;44m"); } while(0) /* bright yellow fg, blue bg */
+#define THEME_ITEM_SELECTED()         do { if (p->focused) ttywrite("\x1b[93;44m"); } while(0) /* bright yellow fg, blue bg */
 #define THEME_SCROLLBAR_FOCUS()       do { ttywrite("\x1b[34m");    } while(0) /* blue fg */
 #define THEME_SCROLLBAR_NORMAL()      do { ttywrite("\x1b[34m");    } while(0)
 #define THEME_SCROLLBAR_TICK_FOCUS()  do { ttywrite("\x1b[44m");    } while(0) /* blue bg */
@@ -124,7 +124,7 @@ Color themes
 #define THEME_ITEM_NORMAL()           do { SETFGCOLOR(0x00, 0x00, 0xaa); SETBGCOLOR(0xff, 0xff, 0xff); } while(0)
 #define THEME_ITEM_FOCUS()            do { SETFGCOLOR(0x00, 0x00, 0xaa); SETBGCOLOR(0xff, 0xff, 0xff); } while(0)
 #define THEME_ITEM_BOLD()             do { attrmode(ATTR_BOLD_ON); SETFGCOLOR(0xaa, 0x00, 0x00); SETBGCOLOR(0xff, 0xff, 0xff); } while(0)
-#define THEME_ITEM_SELECTED()         do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_ITEM_SELECTED()         do { if (p->focused) attrmode(ATTR_REVERSE_ON); } while(0)
 #define THEME_SCROLLBAR_FOCUS()       do { SETFGCOLOR(0x00, 0x00, 0xaa); SETBGCOLOR(0xff, 0xff, 0xff); } while(0)
 #define THEME_SCROLLBAR_NORMAL()      do { SETFGCOLOR(0x00, 0x00, 0xaa); SETBGCOLOR(0xff, 0xff, 0xff); } while(0)
 #define THEME_SCROLLBAR_TICK_FOCUS()  do { SETBGCOLOR(0x00, 0x00, 0xaa); SETFGCOLOR(0xff, 0xff, 0xff); } while(0)
