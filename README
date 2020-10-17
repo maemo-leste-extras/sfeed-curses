@@ -148,13 +148,13 @@ reload the feeds by sending the signal SIGHUP.
 In the input handling code you can then add a case:
 
 	case 'M':
-		forkexec((char *[]) { "markallread.sh", NULL });
+		forkexec((char *[]) { "markallread.sh", NULL }, 0);
 		break;
 
 or
 
 	case 'S':
-		forkexec((char *[]) { "syncnews.sh", NULL });
+		forkexec((char *[]) { "syncnews.sh", NULL }, 0);
 		break;
 
 The specified script should be in $PATH or an absolute path.
@@ -174,6 +174,22 @@ Example of a `sync.sh` shellscript to update the feeds and reload them:
 
 	#!/bin/sh
 	sfeed_update && pkill -SIGHUP sfeed_curses
+
+
+Open an url directly in the same terminal
+-----------------------------------------
+
+To open an url directly in the same terminal using the text-mode lynx browser:
+
+	SFEED_PLUMBER=lynx SFEED_PLUMBER_INTERACTIVE=1 sfeed_curses ~/.sfeed/feeds/*
+
+
+Yank to tmux buffer
+-------------------
+
+This changes the yank command to the tmux buffer, instead of xclip:
+
+	SFEED_YANKER="tmux set-buffer \`cat\`"
 
 
 License

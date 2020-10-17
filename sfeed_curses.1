@@ -1,4 +1,4 @@
-.Dd August 23, 2020
+.Dd October 18, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -152,13 +152,35 @@ Resize the pane dimensions relative to the terminal size.
 .It Ev SFEED_PIPER
 A program where the whole TAB-Separated Value line is piped to.
 By default this is "sfeed_content".
+.It Ev SFEED_PIPER_INTERACTIVE
+Handle the program interactively in the same terminal or not.
+If set to "1" then before execution it restores the terminal attributes and
+.Nm
+will wait until the program is finished.
+If set to "0" then it will suppress stdout and stderr output.
+By default this is set to "1".
 .It Ev SFEED_PLUMBER
 A program that received the link url or enclosure url as a parameter.
 By default this is "xdg-open".
+.It Ev SFEED_PLUMBER_INTERACTIVE
+Handle the program interactively in the same terminal or not.
+If set to "1" then before execution it restores the terminal attributes and
+.Nm
+will wait until the program is finished.
+If set to "0" then it will suppress stdout and stderr output.
+By default this is set to "0".
+This option is useful to open a text-mode browser in the same terminal.
 .It Ev SFEED_YANKER
 A program where the url or enclosure field is piped to, to copy it to a
 clipboard.
 By default this is "xclip -r".
+.It Ev SFEED_YANKER_INTERACTIVE
+Handle the program interactively in the same terminal or not.
+If set to "1" then before execution it restores the terminal attributes and
+.Nm
+will wait until the program is finished.
+If set to "0" then it will suppress stdout and stderr output.
+By default this is set to "0".
 .It Ev SFEED_URL_FILE
 If this variable is set then a different mode is used to mark items as read,
 instead of checking the timestamp, which is the default.

@@ -50,6 +50,9 @@ static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */
 static char *yankercmd = "xclip -r"; /* env variable: $SFEED_YANKER */
 static char *markreadcmd = "sfeed_markread read"; /* env variable: $SFEED_MARK_READ */
 static char *markunreadcmd = "sfeed_markread unread"; /* env variable: $SFEED_MARK_UNREAD */
+static int plumberia = 0; /* env variable: $SFEED_PLUMBER_INTERACTIVE */
+static int piperia = 1; /* env variable: $SFEED_PIPER_INTERACTIVE */
+static int yankeria = 0; /* env variable: $SFEED_YANKER_INTERACTIVE */
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
@@ -555,24 +558,49 @@ init(void)
 	needcleanup = 1;
 }
 
+void
+processexit(pid_t pid, int interactive)
+{
+	pid_t wpid;
+	struct sigaction sa = { 0 };
+
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGINT, &sa, NULL);
+
+	if (interactive) {
+		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
+			;
+		updatesidebar(onlynew);
+		updatetitle();
+		init();
+	} else {
+		sa.sa_handler = sighandler;
+		sigaction(SIGINT, &sa, NULL);
+	}
+}
+
 /* Pipe item line or item field to a program.
    If `field` is -1 then pipe the TSV line, else a specified field.
-   if `wantoutput` is 1 then cleanup and restore the tty,
+   if `interactive` is 1 then cleanup and restore the tty and wait on the
+   process.
    if 0 then don't do that and also write stdout and stderr to /dev/null. */
 void
-pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
+pipeitem(const char *cmd, struct item *item, int field, int interactive)
 {
 	FILE *fp;
-	int i, pid, wpid, status;
+	pid_t pid;
+	int i, status;
 
-	if (wantoutput)
+	if (interactive)
 		cleanup();
 
 	switch ((pid = fork())) {
 	case -1:
 		die("fork");
 	case 0:
-		if (!wantoutput) {
+		if (!interactive) {
 			dup2(devnullfd, 1);
 			dup2(devnullfd, 2);
 		}
@@ -594,28 +622,30 @@ pipeitem(const char *cmd, struct item *item, int field, int wantoutput)
 		status = WIFEXITED(status) ? WEXITSTATUS(status) : 127;
 		_exit(status);
 	default:
-		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
-			;
-
-		if (wantoutput) {
-			updatesidebar(onlynew);
-			updatetitle();
-			init();
-		}
+		processexit(pid, interactive);
 	}
 }
 
 void
-forkexec(char *argv[])
+forkexec(char *argv[], int interactive)
 {
-	switch (fork()) {
+	pid_t pid;
+
+	if (interactive)
+		cleanup();
+
+	switch ((pid = fork())) {
 	case -1:
 		die("fork");
 	case 0:
-		dup2(devnullfd, 1);
-		dup2(devnullfd, 2);
+		if (!interactive) {
+			dup2(devnullfd, 1);
+			dup2(devnullfd, 2);
+		}
 		if (execvp(argv[0], argv) == -1)
 			_exit(1);
+	default:
+		processexit(pid, interactive);
 	}
 }
 
@@ -1476,7 +1506,7 @@ mousereport(int button, int release, int x, int y)
 					row = pane_row_get(p, p->pos);
 					item = (struct item *)row->data;
 					markread(p, p->pos, p->pos, 1);
-					forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL });
+					forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
 				}
 			}
 			break;
@@ -1729,6 +1759,12 @@ main(int argc, char *argv[])
 		pipercmd = tmp;
 	if ((tmp = getenv("SFEED_YANKER")))
 		yankercmd = tmp;
+	if ((tmp = getenv("SFEED_PLUMBER_INTERACTIVE")))
+		plumberia = !strcmp(tmp, "1");
+	if ((tmp = getenv("SFEED_PIPER_INTERACTIVE")))
+		piperia = !strcmp(tmp, "1");
+	if ((tmp = getenv("SFEED_YANKER_INTERACTIVE")))
+		yankeria = !strcmp(tmp, "1");
 	if ((tmp = getenv("SFEED_MARK_READ")))
 		markreadcmd = tmp;
 	if ((tmp = getenv("SFEED_MARK_UNREAD")))
@@ -1941,7 +1977,7 @@ nextpage:
 				p = &panes[selpane];
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
-				forkexec((char *[]) { plumbercmd, item->fields[FieldEnclosure], NULL });
+				forkexec((char *[]) { plumbercmd, item->fields[FieldEnclosure], NULL }, plumberia);
 			}
 			break;
 		case 'm': /* toggle mouse mode */
@@ -1977,7 +2013,7 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL });
+				forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
 			}
 			break;
 		case 'c': /* items: pipe TSV line to program */
@@ -1990,11 +2026,11 @@ nextpage:
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				switch (ch) {
-				case 'y': pipeitem(yankercmd, item, FieldLink, 0); break;
-				case 'E': pipeitem(yankercmd, item, FieldEnclosure, 0); break;
+				case 'y': pipeitem(yankercmd, item, FieldLink, yankeria); break;
+				case 'E': pipeitem(yankercmd, item, FieldEnclosure, yankeria); break;
 				default:
 					markread(p, p->pos, p->pos, 1);
-					pipeitem(pipercmd, item, -1, 1);
+					pipeitem(pipercmd, item, -1, piperia);
 					break;
 				}
 			}
