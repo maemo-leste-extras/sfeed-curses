@@ -23,7 +23,7 @@ setupterm(char *term, int fildes, int *errret)
 {
 	struct winsize winsz;
 
-	if (ioctl(0, TIOCGWINSZ, &winsz) == -1)
+	if (ioctl(fildes, TIOCGWINSZ, &winsz) == -1)
 		return -1; /* ERR */
 	columns = winsz.ws_col;
 	lines = winsz.ws_row;
