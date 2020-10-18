@@ -187,7 +187,7 @@ To open an url directly in the same terminal using the text-mode lynx browser:
 Yank to tmux buffer
 -------------------
 
-This changes the yank command to the tmux buffer, instead of xclip:
+This changes the yank command to set the tmux buffer, instead of X11 xclip:
 
 	SFEED_YANKER="tmux set-buffer \`cat\`"
 
