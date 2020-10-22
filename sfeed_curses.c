@@ -497,6 +497,7 @@ cleanup(void)
 
 	resettitle();
 
+	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = SIG_DFL;
@@ -547,6 +548,7 @@ init(void)
 
 	updategeom();
 
+	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = sighandler;
@@ -562,8 +564,9 @@ void
 processexit(pid_t pid, int interactive)
 {
 	pid_t wpid;
-	struct sigaction sa = { 0 };
+	struct sigaction sa;
 
+	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = SIG_IGN;
