@@ -1014,12 +1014,10 @@ char *
 uiprompt(int x, int y, char *fmt, ...)
 {
 	va_list ap;
-	char *input;
-	char buf[32];
+	char *input, buf[32];
 
 	va_start(ap, fmt);
-	if (vsnprintf(buf, sizeof(buf), fmt, ap) >= sizeof(buf))
-		buf[sizeof(buf) - 1] = '\0';
+	vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
 
 	cursorsave();
