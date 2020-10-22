@@ -808,7 +808,7 @@ cyclepanen(int n)
 void
 cyclepane(void)
 {
-	int i;
+	size_t i;
 
 	i = selpane;
 	cyclepanen(+1);
@@ -1340,7 +1340,8 @@ int
 getsidebarwidth(void)
 {
 	struct feed *feed;
-	int i, len, width = 0;
+	size_t i;
+	int len, width = 0;
 
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
