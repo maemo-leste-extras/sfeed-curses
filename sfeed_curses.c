@@ -148,7 +148,7 @@ void markread(struct pane *, off_t, off_t, int);
 void pane_draw(struct pane *);
 void sighandler(int);
 void updategeom(void);
-void updatesidebar(int);
+void updatesidebar(void);
 void urls_free(void);
 int urls_isnew(const char *);
 void urls_read(void);
@@ -572,7 +572,7 @@ processexit(pid_t pid, int interactive)
 	if (interactive) {
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
 			;
-		updatesidebar(onlynew);
+		updatesidebar();
 		updatetitle();
 		init();
 	} else {
@@ -1329,7 +1329,7 @@ feeds_reloadall(void)
 	urls_free();
 	/* restore numeric position */
 	pane_setpos(&panes[PaneItems], pos);
-	updatesidebar(onlynew);
+	updatesidebar();
 	updatetitle();
 }
 
@@ -1355,7 +1355,7 @@ getsidebarwidth(void)
 }
 
 void
-updatesidebar(int onlynew)
+updatesidebar(void)
 {
 	struct pane *p;
 	struct row *row;
@@ -1499,7 +1499,7 @@ mousereport(int button, int release, int x, int y)
 					feed_load(f, f->fp);
 				urls_free();
 				/* redraw row: counts could be changed */
-				updatesidebar(onlynew);
+				updatesidebar();
 				updatetitle();
 			} else if (selpane == PaneItems) {
 				if (dblclick && !changedpane) {
@@ -1678,7 +1678,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			if (i >= visstart && i < visstart + p->height)
 				pane_row_draw(p, i, i == p->pos);
 		}
-		updatesidebar(onlynew);
+		updatesidebar();
 		updatetitle();
 	}
 }
@@ -1820,7 +1820,7 @@ main(int argc, char *argv[])
 	if ((devnullfd = open("/dev/null", O_WRONLY)) == -1)
 		die("open: /dev/null");
 
-	updatesidebar(onlynew);
+	updatesidebar();
 	updatetitle();
 	init();
 	draw();
@@ -1993,7 +1993,7 @@ nextpage:
 		case 't': /* toggle showing only new in sidebar */
 			onlynew = !onlynew;
 			pane_setpos(&panes[PaneFeeds], 0);
-			updatesidebar(onlynew);
+			updatesidebar();
 			break;
 		case 'o': /* feeds: load, items: plumb url */
 		case '\n':
@@ -2007,7 +2007,7 @@ nextpage:
 					feed_load(f, f->fp);
 				urls_free();
 				/* redraw row: counts could be changed */
-				updatesidebar(onlynew);
+				updatesidebar();
 				updatetitle();
 			} else if (selpane == PaneItems && panes[selpane].nrows) {
 				row = pane_row_get(p, p->pos);
