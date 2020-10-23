@@ -857,6 +857,7 @@ updategeom(void)
 	scrollbars[PaneItems].x = panes[PaneItems].x + panes[PaneItems].width;
 	scrollbars[PaneItems].y = panes[PaneItems].y;
 	scrollbars[PaneItems].size = panes[PaneItems].height;
+	scrollbars[PaneItems].hidden = panes[PaneItems].width ? 0 : 1;
 
 	/* statusbar below */
 	statusbar.width = win.width;
