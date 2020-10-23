@@ -1497,7 +1497,7 @@ mousereport(int button, int release, int x, int y)
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (selpane == PaneFeeds) {
+			if (i == PaneFeeds) {
 				row = pane_row_get(p, p->pos);
 				f = (struct feed *)row->data;
 				feeds_set(f);
@@ -1508,7 +1508,7 @@ mousereport(int button, int release, int x, int y)
 				/* redraw row: counts could be changed */
 				updatesidebar();
 				updatetitle();
-			} else if (selpane == PaneItems) {
+			} else if (i == PaneItems) {
 				if (dblclick && !changedpane) {
 					row = pane_row_get(p, p->pos);
 					item = (struct item *)row->data;
@@ -1521,7 +1521,7 @@ mousereport(int button, int release, int x, int y)
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (selpane == PaneItems) {
+			if (i == PaneItems) {
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
