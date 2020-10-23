@@ -1542,6 +1542,7 @@ feed_row_format(struct pane *p, struct row *row)
 
 	feed = (struct feed *)row->data;
 
+	/* align counts to the right and pad remaining width with spaces */
 	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
 	               feed->totalnew, feed->total);
 	if (utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ') != -1)
