@@ -144,6 +144,7 @@ struct feed {
 void alldirty(void);
 void cleanup(void);
 void draw(void);
+int getsidebarwidth(void);
 void markread(struct pane *, off_t, off_t, int);
 void pane_draw(struct pane *);
 void sighandler(int);
@@ -822,6 +823,9 @@ updategeom(void)
 {
 	int w, x;
 
+	panes[PaneFeeds].width = getsidebarwidth();
+	if (win.width && panes[PaneFeeds].width > win.width)
+		panes[PaneFeeds].width = win.width - 1;
 	panes[PaneFeeds].x = 0;
 	panes[PaneFeeds].y = 0;
 	/* reserve space for statusbar */
@@ -1538,14 +1542,19 @@ feed_row_format(struct pane *p, struct row *row)
 	struct feed *feed;
 	static char text[1024];
 	char bufw[256], counts[128];
-	int len;
+	int len, w;
 
 	feed = (struct feed *)row->data;
 
 	/* align counts to the right and pad remaining width with spaces */
 	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
 	               feed->totalnew, feed->total);
-	if (utf8pad(bufw, sizeof(bufw), feed->name, p->width - len, ' ') != -1)
+	if (len > p->width)
+		w = p->width;
+	else
+		w = p->width - len;
+
+	if (utf8pad(bufw, sizeof(bufw), feed->name, w, ' ') != -1)
 		snprintf(text, sizeof(text), "%s%s", bufw, counts);
 	else
 		text[0] = '\0';
