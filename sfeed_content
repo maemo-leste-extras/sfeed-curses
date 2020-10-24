@@ -30,11 +30,9 @@ cat > "$tmp"
 	if (length($7))
 		print "Author:    " $7;
 	if (length($9)) {
-		printf("Category:  ");
-		ncategories = split($9, categories, "|");
-		for (i = 1; i <= ncategories; i++)
-			printf("%s%s", i > 1 ? ", " : "", categories[i]);
-		printf("\n");
+		categories = $9;
+		gsub("\\|", ", ", categories);
+		print "Category:  " categories;
 	}
 	if (length($3))
 		print "Link:      " $3;
