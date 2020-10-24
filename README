@@ -154,7 +154,7 @@ In the input handling code you can then add a case:
 or
 
 	case 'S':
-		forkexec((char *[]) { "syncnews.sh", NULL }, 0);
+		forkexec((char *[]) { "syncnews.sh", NULL }, 1);
 		break;
 
 The specified script should be in $PATH or an absolute path.
