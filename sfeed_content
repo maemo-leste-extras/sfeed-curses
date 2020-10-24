@@ -21,7 +21,7 @@ function unescape(s) {
 }
 
 tmp=$(mktemp 'sfeed_curses_XXXXXXXXXX')
-trap "rm $tmp" EXIT
+trap "rm $tmp" INT EXIT
 cat > "$tmp"
 
 (awk -F '\t' '
