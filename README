@@ -170,7 +170,7 @@ Example of a `markallread.sh` shellscript to mark all urls as read:
 	mv "$tmp" ~/.sfeed/urls &&
 	pkill -SIGHUP sfeed_curses # reload feeds.
 
-Example of a `sync.sh` shellscript to update the feeds and reload them:
+Example of a `syncnews.sh` shellscript to update the feeds and reload them:
 
 	#!/bin/sh
 	sfeed_update && pkill -SIGHUP sfeed_curses
