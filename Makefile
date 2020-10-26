@@ -1,7 +1,7 @@
 .POSIX:
 
 NAME = sfeed_curses
-VERSION = 0.9.4
+VERSION = 0.9.5
 
 # paths
 PREFIX = /usr/local
