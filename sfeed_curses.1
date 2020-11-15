@@ -1,4 +1,4 @@
-.Dd November 13, 2020
+.Dd November 15, 2020
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -9,29 +9,30 @@
 .Op Ar file...
 .Sh DESCRIPTION
 .Nm
-shows feed data (TSV) in the format
+shows the feed data which is in the
 .Xr sfeed 5
-which is read from stdin or
-.Ar file
-into a UI.
+format into a UI.
+.Pp
+.Nm
+can read this feed data from stdin or one or more
+.Ar files .
+If no
+.Ar files
+are specified then the data is read from stdin and the feed name is "stdin".
+No sidebar is visible by default in this case.
 If one or more
-.Ar file
+.Ar files
 are specified, the basename of the
 .Ar file
 is used as the feed name in the output such as the feeds sidebar.
-If no
-.Ar file
-parameters are specified and so the data is read from stdin then the feed name
-is "stdin".
-.Pp
-When the data is read from files then there will be a sidebar with the feeds.
-When the data is read from stdin then here will be no sidebar visible by
-default.
+The
+.Ar files
+are processed and shown in the specified argument order in the feeds sidebar.
 .Pp
 Items with a timestamp from the last day compared to the system time at the
 time of loading the feed are automatically marked as new and bold.
 There is also an alternative mode available to mark items as read by matching
-against a list of urls from a plain-text file.
+it against a list of urls from a plain-text file.
 .Pp
 .Nm
 aligns the output.
