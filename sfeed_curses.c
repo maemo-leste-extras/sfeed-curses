@@ -54,6 +54,8 @@ static int plumberia = 0; /* env variable: $SFEED_PLUMBER_INTERACTIVE */
 static int piperia = 1; /* env variable: $SFEED_PIPER_INTERACTIVE */
 static int yankeria = 0; /* env variable: $SFEED_YANKER_INTERACTIVE */
 
+static int fixedsidebarwidth = -1; /* fixed sidebar width, < 0 is automatic */
+
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
 };
@@ -1346,6 +1348,10 @@ getsidebarwidth(void)
 	size_t i;
 	int len, width = 0;
 
+	/* fixed sidebar width? else calculate an optimal size automatically */
+	if (fixedsidebarwidth >= 0)
+		return fixedsidebarwidth;
+
 	for (i = 0; i < nfeeds; i++) {
 		feed = &feeds[i];
 
@@ -2001,6 +2007,20 @@ nextpage:
 			panes[PaneFeeds].hidden = !panes[PaneFeeds].hidden;
 			if (selpane == PaneFeeds && panes[selpane].hidden)
 				selpane = PaneItems;
+			updategeom();
+			break;
+		case '<': /* decrease fixed sidebar width */
+		case '>': /* increase fixed sidebar width */
+			if (fixedsidebarwidth < 0)
+				fixedsidebarwidth = getsidebarwidth();
+			if (ch == '<' && fixedsidebarwidth > 0)
+				fixedsidebarwidth--;
+			else if (ch != '<')
+				fixedsidebarwidth++;
+			updategeom();
+			break;
+		case '=': /* reset fixed sidebar width to automatic size */
+			fixedsidebarwidth = -1;
 			updategeom();
 			break;
 		case 't': /* toggle showing only new in sidebar */
