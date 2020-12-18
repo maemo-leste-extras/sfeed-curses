@@ -34,8 +34,7 @@ BEGIN {
 	if ($5 == "plain") {
 		print unescape($4);
 	} else {
-		print ("<span>" unescape($4) "</span>") | \
-			htmlconv;
+		print unescape($4) | htmlconv;
 		close(htmlconv);
 	}
 	exit;
