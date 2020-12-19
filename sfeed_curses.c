@@ -27,18 +27,11 @@
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
 #define SCROLLBAR_SYMBOL_TICK  " "
 
-/* See the README for some color theme examples. */
-#define THEME_ITEM_NORMAL()           do {                            } while(0)
-#define THEME_ITEM_FOCUS()            do {                            } while(0)
-#define THEME_ITEM_BOLD()             do { attrmode(ATTR_BOLD_ON);    } while(0)
-#define THEME_ITEM_SELECTED()         do { if (p->focused) attrmode(ATTR_REVERSE_ON); } while(0)
-#define THEME_SCROLLBAR_FOCUS()       do {                            } while(0)
-#define THEME_SCROLLBAR_NORMAL()      do { attrmode(ATTR_FAINT_ON);   } while(0)
-#define THEME_SCROLLBAR_TICK_FOCUS()  do { attrmode(ATTR_REVERSE_ON); } while(0)
-#define THEME_SCROLLBAR_TICK_NORMAL() do { attrmode(ATTR_REVERSE_ON); } while(0)
-#define THEME_STATUSBAR()             do { attrmode(ATTR_REVERSE_ON); } while(0)
-#define THEME_INPUT_LABEL()           do { attrmode(ATTR_REVERSE_ON); } while(0)
-#define THEME_INPUT_NORMAL()          do {                            } while(0)
+/* color-scheme */
+#ifndef SFEED_THEME
+#define SFEED_THEME "themes/mono.h"
+#endif
+#include SFEED_THEME
 
 static char *plumbercmd = "xdg-open"; /* env variable: $SFEED_PLUMBER */
 static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */

@@ -3,6 +3,9 @@
 NAME = sfeed_curses
 VERSION = 0.9.6
 
+# theme, see themes/ directory.
+#SFEED_THEME = mono
+
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/man
@@ -11,7 +14,8 @@ DOCPREFIX = ${PREFIX}/share/doc/${NAME}
 # use system flags.
 SFEED_CFLAGS = ${CFLAGS}
 SFEED_LDFLAGS = ${LDFLAGS} -lcurses
-SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
+SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE \
+	-DSFEED_THEME=\"themes/${SFEED_THEME}.h\"
 
 # Linux: some distros use ncurses and require -lncurses.
 #SFEED_LDFLAGS = ${LDFLAGS} -lncurses
@@ -19,7 +23,8 @@ SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
 # Gentoo Linux: some distros might also require -ltinfo and -D_DEFAULT_SOURCE
 # to prevent warnings about feature macros.
 #SFEED_LDFLAGS = ${LDFLAGS} -lcurses -ltinfo
-#SFEED_CPPFLAGS = -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
+#SFEED_CPPFLAGS = -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L \
+#	-D_XOPEN_SOURCE=700 -D_BSD_SOURCE -DSFEED_THEME=\"themes/${SFEED_THEME}.h\"
 
 BIN = sfeed_curses
 SCRIPTS = sfeed_content sfeed_markread
