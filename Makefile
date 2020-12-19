@@ -4,7 +4,7 @@ NAME = sfeed_curses
 VERSION = 0.9.6
 
 # theme, see themes/ directory.
-#SFEED_THEME = mono
+SFEED_THEME = mono
 
 # paths
 PREFIX = /usr/local
