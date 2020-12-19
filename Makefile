@@ -55,7 +55,7 @@ ${OBJ}:
 dist:
 	rm -rf "${NAME}-${VERSION}"
 	mkdir -p "${NAME}-${VERSION}"
-	cp -f ${MAN1} ${DOC} ${HDR} ${SRC} ${SCRIPTS} Makefile \
+	cp -fR ${MAN1} ${DOC} ${HDR} ${SRC} ${SCRIPTS} Makefile themes \
 		"${NAME}-${VERSION}"
 	# make tarball
 	tar cf - "${NAME}-${VERSION}" | \
