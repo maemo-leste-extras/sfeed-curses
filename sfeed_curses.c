@@ -27,7 +27,7 @@
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
 #define SCROLLBAR_SYMBOL_TICK  " "
 
-/* color-scheme */
+/* color-theme */
 #ifndef SFEED_THEME
 #define SFEED_THEME "themes/mono.h"
 #endif
