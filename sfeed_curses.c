@@ -18,8 +18,12 @@
 #include <wchar.h>
 
 /* curses */
+#ifndef SFEED_MINICURSES
 #include <curses.h>
 #include <term.h>
+#else
+#include "minicurses.h"
+#endif
 
 #define LEN(a) sizeof((a))/sizeof((a)[0])
 
