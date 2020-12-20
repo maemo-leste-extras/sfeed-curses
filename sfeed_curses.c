@@ -982,15 +982,12 @@ lineeditor(void)
 			if (!nchars)
 				continue;
 			input[--nchars] = '\0';
-			ch = '\b'; /* back */
-			write(1, &ch, 1);
-			ch = ' '; /* blank */
-			write(1, &ch, 1);
-			ch = '\b'; /* back */
-			write(1, &ch, 1);
+			write(1, "\b \b", 3); /* back, blank, back */
 			continue;
 		} else if (ch >= ' ') {
-			write(1, &ch, 1);
+			input[nchars] = ch;
+			write(1, &input[nchars], 1);
+			nchars++;
 		} else if (ch < 0) {
 			switch (sigstate) {
 			case 0:
@@ -1004,7 +1001,6 @@ lineeditor(void)
 			free(input);
 			return NULL;
 		}
-		input[nchars++] = ch;
 	}
 	return input;
 }
