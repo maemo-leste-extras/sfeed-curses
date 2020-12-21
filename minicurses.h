@@ -24,8 +24,10 @@ setupterm(char *term, int fildes, int *errret)
 
 	if (ioctl(fildes, TIOCGWINSZ, &winsz) == -1)
 		return -1; /* ERR */
-	columns = winsz.ws_col;
-	lines = winsz.ws_row;
+	if (winsz.ws_col > 0)
+		columns = winsz.ws_col;
+	if (winsz.ws_row > 0)
+		lines = winsz.ws_row;
 
 	return 0; /* OK */
 }
