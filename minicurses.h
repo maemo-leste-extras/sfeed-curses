@@ -15,8 +15,7 @@ const char *enter_bold_mode = "\x1b[1m";
 const char *enter_dim_mode = "\x1b[2m";
 const char *enter_reverse_mode = "\x1b[7m";
 
-int columns = 79;
-int lines = 24;
+int columns = 80, lines = 24;
 
 int
 setupterm(char *term, int fildes, int *errret)
