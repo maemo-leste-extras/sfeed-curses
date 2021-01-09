@@ -315,19 +315,18 @@ colw(const char *s)
 
 	slen = strlen(s);
 	for (i = 0; i < slen; i += inc) {
-		inc = 1;
+		inc = 1; /* next byte */
 		if ((unsigned char)s[i] < 32) {
 			continue;
 		} else if ((unsigned char)s[i] >= 127) {
 			rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4);
+			inc = rl;
 			if (rl < 0) {
 				mbtowc(NULL, NULL, 0); /* reset state */
-				inc = 1; /* next byte */
+				inc = 1; /* invalid, seek next byte */
 				w = 1; /* replacement char is one width */
 			} else if ((w = wcwidth(wc)) == -1) {
 				continue;
-			} else {
-				inc = rl;
 			}
 			col += w;
 		} else {
@@ -355,19 +354,18 @@ utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 
 	slen = strlen(s);
 	for (i = 0; i < slen; i += inc) {
-		inc = 1;
+		inc = 1; /* next byte */
 		if ((unsigned char)s[i] < 32)
 			continue;
 
 		rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4);
+		inc = rl;
 		if (rl < 0) {
 			mbtowc(NULL, NULL, 0); /* reset state */
-			inc = 1; /* next byte */
+			inc = 1; /* invalid, seek next byte */
 			w = 1; /* replacement char is one width */
 		} else if ((w = wcwidth(wc)) == -1) {
 			continue;
-		} else {
-			inc = rl;
 		}
 
 		if (col + w > len || (col + w == len && s[i + inc])) {
