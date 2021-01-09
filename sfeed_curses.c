@@ -30,6 +30,7 @@
 #define PAD_TRUNCATE_SYMBOL    "\xe2\x80\xa6" /* symbol: "ellipsis" */
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
 #define SCROLLBAR_SYMBOL_TICK  " "
+#define UTF_INVALID_SYMBOL     "\xef\xbf\xbd" /* symbol: "replacement" */
 
 /* color-theme */
 #ifndef SFEED_THEME
@@ -310,15 +311,28 @@ colw(const char *s)
 {
 	wchar_t wc;
 	size_t col = 0, i, slen;
-	int rl, w;
+	int inc, rl, w;
 
 	slen = strlen(s);
-	for (i = 0; i < slen; i += rl) {
-		if ((rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4)) <= 0)
-			break;
-		if ((w = wcwidth(wc)) == -1)
+	for (i = 0; i < slen; i += inc) {
+		inc = 1;
+		if ((unsigned char)s[i] < 32) {
 			continue;
-		col += w;
+		} else if ((unsigned char)s[i] >= 127) {
+			rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4);
+			if (rl < 0) {
+				mbtowc(NULL, NULL, 0); /* reset state */
+				inc = 1; /* next byte */
+				w = 1; /* replacement char is one width */
+			} else if ((w = wcwidth(wc)) == -1) {
+				continue;
+			} else {
+				inc = rl;
+			}
+			col += w;
+		} else {
+			col++;
+		}
 	}
 	return col;
 }
@@ -330,33 +344,55 @@ utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 {
 	wchar_t wc;
 	size_t col = 0, i, slen, siz = 0;
-	int rl, w;
+	int inc, rl, w;
 
-	if (!len)
+	if (!bufsiz)
 		return -1;
+	if (!len) {
+		buf[0] = '\0';
+		return 0;
+	}
 
 	slen = strlen(s);
-	for (i = 0; i < slen; i += rl) {
-		if ((rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4)) <= 0)
-			break;
-		if ((w = wcwidth(wc)) == -1)
+	for (i = 0; i < slen; i += inc) {
+		inc = 1;
+		if ((unsigned char)s[i] < 32)
 			continue;
-		if (col + w > len || (col + w == len && s[i + rl])) {
+
+		rl = mbtowc(&wc, &s[i], slen - i < 4 ? slen - i : 4);
+		if (rl < 0) {
+			mbtowc(NULL, NULL, 0); /* reset state */
+			inc = 1; /* next byte */
+			w = 1; /* replacement char is one width */
+		} else if ((w = wcwidth(wc)) == -1) {
+			continue;
+		} else {
+			inc = rl;
+		}
+
+		if (col + w > len || (col + w == len && s[i + inc])) {
 			if (siz + 4 >= bufsiz)
 				return -1;
 			memcpy(&buf[siz], PAD_TRUNCATE_SYMBOL, sizeof(PAD_TRUNCATE_SYMBOL) - 1);
 			siz += sizeof(PAD_TRUNCATE_SYMBOL) - 1;
-			if (col + w == len && w > 1)
-				buf[siz++] = pad;
 			buf[siz] = '\0';
-			return 0;
+			col++;
+			break;
+		} else if (rl < 0) {
+			if (siz + 4 >= bufsiz)
+				return -1;
+			memcpy(&buf[siz], UTF_INVALID_SYMBOL, sizeof(UTF_INVALID_SYMBOL) - 1);
+			siz += sizeof(UTF_INVALID_SYMBOL) - 1;
+			buf[siz] = '\0';
+			col++;
+			continue;
 		}
-		if (siz + rl + 1 >= bufsiz)
+		if (siz + inc + 1 >= bufsiz)
 			return -1;
-		memcpy(&buf[siz], &s[i], rl);
-		col += w;
-		siz += rl;
+		memcpy(&buf[siz], &s[i], inc);
+		siz += inc;
 		buf[siz] = '\0';
+		col += w;
 	}
 
 	len -= col;
