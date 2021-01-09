@@ -609,13 +609,13 @@ pipeitem(const char *cmd, struct item *item, int field, int interactive)
 		if (field == -1) {
 			for (i = 0; i < FieldLast; i++) {
 				if (i)
-					fputc('\t', fp);
+					putc('\t', fp);
 				fputs(item->fields[i], fp);
 			}
 		} else {
 			fputs(item->fields[field], fp);
 		}
-		fputc('\n', fp);
+		putc('\n', fp);
 		status = pclose(fp);
 		status = WIFEXITED(status) ? WEXITSTATUS(status) : 127;
 		_exit(status);
@@ -1651,7 +1651,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			item = (struct item *)row->data;
 			if (item->isnew != isnew) {
 				fputs(item->link, fp);
-				fputc('\n', fp);
+				putc('\n', fp);
 			}
 		}
 		status = pclose(fp);
