@@ -299,7 +299,7 @@ strtotime(const char *s, time_t *t)
 	if (errno || *s == '\0' || *e)
 		return -1;
 	/* NOTE: assumes time_t is 64-bit on 64-bit platforms:
-	         long long (atleast 32-bit) to time_t. */
+	         long long (at least 32-bit) to time_t. */
 	if (t)
 		*t = (time_t)l;
 
@@ -2045,7 +2045,7 @@ nextpage:
 			pane_setpos(&panes[PaneFeeds], 0);
 			updatesidebar();
 			break;
-		case 'o': /* feeds: load, items: plumb url */
+		case 'o': /* feeds: load, items: plumb URL */
 		case '\n':
 			p = &panes[selpane];
 			if (selpane == PaneFeeds && panes[selpane].nrows) {
@@ -2069,7 +2069,7 @@ nextpage:
 		case 'c': /* items: pipe TSV line to program */
 		case 'p':
 		case '|':
-		case 'y': /* yank: pipe TSV field to yank url to clipboard */
+		case 'y': /* yank: pipe TSV field to yank URL to clipboard */
 		case 'E': /* yank: pipe TSV field to yank enclosure to clipboard */
 			if (selpane == PaneItems && panes[selpane].nrows) {
 				p = &panes[selpane];
