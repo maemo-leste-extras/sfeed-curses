@@ -890,7 +890,7 @@ updategeom(void)
 	/* statusbar below */
 	statusbar.width = win.width;
 	statusbar.x = 0;
-	statusbar.y = panes[PaneFeeds].height;
+	statusbar.y = panes[PaneItems].y + panes[PaneItems].height;
 
 	alldirty();
 }
