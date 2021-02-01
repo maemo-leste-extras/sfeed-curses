@@ -1557,6 +1557,7 @@ mousereport(int button, int release, int x, int y)
 			pane_scrollpage(p, button == 3 ? -1 : +1);
 			break;
 		}
+		return; /* do not bubble events */
 	}
 }
 
