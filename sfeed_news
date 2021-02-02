@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if ! [ -d "$HOME/.sfeed" ]; then
+	cat <<EOF
+You should set up your sfeed in $HOME/.sfeed.
+Please see the manpages of sfeed and sfeed_curses for more information.
+EOF
+	read -r foo
+	exit 1
+fi
+
+exec sfeed_curses $HOME/.sfeed/*

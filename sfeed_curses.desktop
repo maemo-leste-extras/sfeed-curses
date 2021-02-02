@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Name=sfeed_curses
+Comment=RSS/Atom newsreader
+Terminal=true
+Exec=sfeed_news
+Icon=general_rss
+Categories=ConsoleOnly;Network;News;Feed
+StartupNotify=false

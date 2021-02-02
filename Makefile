@@ -13,7 +13,7 @@ DOCPREFIX = ${PREFIX}/share/doc/${NAME}
 
 # use system flags.
 SFEED_CFLAGS = ${CFLAGS}
-SFEED_LDFLAGS = ${LDFLAGS} -lcurses
+SFEED_LDFLAGS = ${LDFLAGS} -lncurses
 SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE \
 	-DSFEED_THEME=\"themes/${SFEED_THEME}.h\"
 
@@ -32,7 +32,7 @@ SFEED_CPPFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE \
 #SFEED_LDFLAGS = ${LDFLAGS}
 
 BIN = sfeed_curses
-SCRIPTS = sfeed_content sfeed_markread
+SCRIPTS = sfeed_content sfeed_markread sfeed_news
 
 SRC = ${BIN:=.c}
 HDR = minicurses.h
@@ -83,6 +83,8 @@ install: all
 	mkdir -p "${DESTDIR}${MANPREFIX}/man1"
 	cp -f ${MAN1} "${DESTDIR}${MANPREFIX}/man1"
 	for m in ${MAN1}; do chmod 644 "${DESTDIR}${MANPREFIX}/man1/$$m"; done
+	mkdir -p "${DESTDIR}/${PREFIX}/share/applications/hildon"
+	cp -f *.desktop "${DESTDIR}/${PREFIX}/share/applications/hildon"
 
 uninstall:
 	# removing executable files and scripts.
@@ -93,5 +95,7 @@ uninstall:
 	-rmdir "${DESTDIR}${DOCPREFIX}"
 	# removing manual pages.
 	for m in ${MAN1}; do rm -f "${DESTDIR}${MANPREFIX}/man1/$$m"; done
+	rm -f \
+		"${DESTDIR}/${PREFIX}/share/applications/hildon/sfeed_curses.desktop"
 
 .PHONY: all clean dist install uninstall
