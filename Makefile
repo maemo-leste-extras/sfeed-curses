@@ -7,8 +7,8 @@ VERSION = 0.9.8
 SFEED_THEME = mono
 
 # paths
-PREFIX = /usr/local
-MANPREFIX = ${PREFIX}/man
+PREFIX = /usr
+MANPREFIX = ${PREFIX}/share/man
 DOCPREFIX = ${PREFIX}/share/doc/${NAME}
 
 # use system flags.
