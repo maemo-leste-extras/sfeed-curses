@@ -1,0 +1,5 @@
+sfeed-curses (0.9.8+leste-1) unstable; urgency=medium
+
+  * Initial Leste packaging.
+
+ -- Ivan J. <parazyd@dyne.org>  Tue, 02 Feb 2021 13:47:48 +0100

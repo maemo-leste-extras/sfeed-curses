@@ -1,0 +1,16 @@
+Source: sfeed-curses
+Priority: optional
+Section: user/network
+Maintainer: Ivan J. <parazyd@dyne.org>
+Build-Depends:
+ debhelper-compat (= 12),
+ maemo-system-services-dev,
+ libncurses-dev,
+Vcs-Git: https://github.com/maemo-leste-extras/sfeed-curses
+Vcs-Browser: https://github.com/maemo-leste-extras/sfeed-curses
+
+Package: sfeed-curses
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, sfeed
+Description: sfeed curses UI
+XB-Maemo-Icon-26: ${maemo:icon26}
