@@ -852,7 +852,7 @@ updategeom(void)
 	int w, x;
 
 	panes[PaneFeeds].width = getsidebarwidth();
-	if (win.width && panes[PaneFeeds].width > win.width)
+	if (win.width && panes[PaneFeeds].width >= win.width)
 		panes[PaneFeeds].width = win.width - 1;
 	panes[PaneFeeds].x = 0;
 	panes[PaneFeeds].y = 0;
