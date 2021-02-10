@@ -714,6 +714,9 @@ pane_row_draw(struct pane *p, off_t pos, int selected)
 {
 	struct row *row;
 
+	if (p->hidden || !p->width || !p->height)
+		return;
+
 	row = pane_row_get(p, pos);
 
 	cursorsave();
