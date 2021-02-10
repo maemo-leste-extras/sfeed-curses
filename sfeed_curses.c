@@ -76,7 +76,7 @@ struct pane {
 	int x; /* absolute x position on the screen */
 	int y; /* absolute y position on the screen */
 	int width; /* absolute width of the pane */
-	int height; /* absolute height of the pane */
+	int height; /* absolute height of the pane, should be > 0 */
 	off_t pos; /* focused row position */
 	struct row *rows;
 	size_t nrows; /* total amount of rows */
@@ -94,7 +94,7 @@ struct scrollbar {
 	int ticksize;
 	int x; /* absolute x position on the screen */
 	int y; /* absolute y position on the screen */
-	int size; /* absolute size of the bar */
+	int size; /* absolute size of the bar, should be > 0 */
 	int focused; /* has focus or not */
 	int hidden; /* is visible or not */
 	int dirty; /* needs draw update */
@@ -798,15 +798,16 @@ pane_draw(struct pane *p)
 {
 	off_t pos, y;
 
-	if (p->hidden || !p->dirty)
+	if (!p->dirty)
+		return;
+	p->dirty = 0;
+	if (p->hidden || !p->width || !p->height)
 		return;
 
 	/* draw visible rows */
 	pos = p->pos - (p->pos % p->height);
 	for (y = 0; y < p->height; y++)
 		pane_row_draw(p, y + pos, (y + pos) == p->pos);
-
-	p->dirty = 0;
 }
 
 /* Cycle visible pane in a direction, but don't cycle back. */
@@ -934,7 +935,10 @@ scrollbar_draw(struct scrollbar *s)
 {
 	off_t y;
 
-	if (s->hidden || !s->dirty)
+	if (!s->dirty)
+		return;
+	s->dirty = 0;
+	if (s->hidden || !s->size)
 		return;
 
 	cursorsave();
@@ -963,7 +967,6 @@ scrollbar_draw(struct scrollbar *s)
 
 	attrmode(ATTR_RESET);
 	cursorrestore();
-	s->dirty = 0;
 }
 
 int
@@ -1072,7 +1075,10 @@ uiprompt(int x, int y, char *fmt, ...)
 void
 statusbar_draw(struct statusbar *s)
 {
-	if (s->hidden || !s->dirty)
+	if (!s->dirty)
+		return;
+	s->dirty = 0;
+	if (s->hidden || !s->width)
 		return;
 
 	cursorsave();
@@ -1083,7 +1089,6 @@ statusbar_draw(struct statusbar *s)
 	printpad(s->text, s->width - (!eat_newline_glitch));
 	attrmode(ATTR_RESET);
 	cursorrestore();
-	s->dirty = 0;
 }
 
 void
