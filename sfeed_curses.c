@@ -26,6 +26,7 @@
 #endif
 
 #define LEN(a) sizeof((a))/sizeof((a)[0])
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #define PAD_TRUNCATE_SYMBOL    "\xe2\x80\xa6" /* symbol: "ellipsis" */
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
@@ -861,7 +862,7 @@ updategeom(void)
 	panes[PaneFeeds].x = 0;
 	panes[PaneFeeds].y = 0;
 	/* reserve space for statusbar */
-	panes[PaneFeeds].height = win.height > 1 ? win.height - 1 : 1;
+	panes[PaneFeeds].height = MAX(win.height - 1, 1);
 
 	/* NOTE: updatesidebar() must happen before this function for the
 	   remaining width */
@@ -877,9 +878,10 @@ updategeom(void)
 	}
 
 	panes[PaneItems].x = x;
-	panes[PaneItems].width = w > 0 ? w - 1 : 0; /* rest and space for scrollbar */
+	panes[PaneItems].width = MAX(w - 1, 0); /* rest and space for scrollbar */
 	panes[PaneItems].height = panes[PaneFeeds].height;
 	panes[PaneItems].y = panes[PaneFeeds].y;
+	panes[PaneItems].hidden = !panes[PaneItems].width || !panes[PaneItems].height;
 
 	scrollbars[PaneFeeds].x = panes[PaneFeeds].x + panes[PaneFeeds].width;
 	scrollbars[PaneFeeds].y = panes[PaneFeeds].y;
@@ -889,7 +891,7 @@ updategeom(void)
 	scrollbars[PaneItems].x = panes[PaneItems].x + panes[PaneItems].width;
 	scrollbars[PaneItems].y = panes[PaneItems].y;
 	scrollbars[PaneItems].size = panes[PaneItems].height;
-	scrollbars[PaneItems].hidden = panes[PaneItems].width ? 0 : 1;
+	scrollbars[PaneItems].hidden = panes[PaneItems].hidden;
 
 	/* statusbar below */
 	statusbar.width = win.width;
