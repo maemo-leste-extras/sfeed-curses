@@ -1,4 +1,4 @@
-.Dd December 18, 2020
+.Dd February 20, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -200,14 +200,16 @@ This URL is matched on the link field as specified in
 A program to mark items as read if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread read".
-The marked items are piped to the program.
+The marked items are piped to the program line by line.
+If the feed item has a link then this line is the link, otherwise it is the ID.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_MARK_UNREAD
 A program to mark items as unread if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread unread".
-The marked items are piped to the program.
+The unmarked items are piped to the program line by line.
+If the feed item has a link then this line is the link, otherwise it is the ID.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_LAZYLOAD

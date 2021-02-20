@@ -113,9 +113,10 @@ struct statusbar {
 /* /UI */
 
 struct item {
-	char *link; /* separate link field (always loaded in case of urlfile) */
 	char *fields[FieldLast];
 	char *line; /* allocated split line */
+	/* field to match new items, if link is set match on link, else on id */
+	char *matchnew;
 	time_t timestamp;
 	int timeok;
 	int isnew;
@@ -1118,9 +1119,9 @@ linetoitem(char *line, struct item *item)
 	parseline(line, fields);
 	memcpy(item->fields, fields, sizeof(fields));
 	if (urlfile)
-		item->link = estrdup(fields[FieldLink]);
+		item->matchnew = estrdup(fields[fields[FieldLink][0] ? FieldLink : FieldId]);
 	else
-		item->link = NULL;
+		item->matchnew = NULL;
 
 	parsedtime = 0;
 	if (!strtotime(fields[FieldUnixTimestamp], &parsedtime)) {
@@ -1141,7 +1142,7 @@ feed_items_free(struct items *items)
 
 	for (i = 0; i < items->len; i++) {
 		free(items->items[i].line);
-		free(items->items[i].link);
+		free(items->items[i].matchnew);
 	}
 	free(items->items);
 	items->items = NULL;
@@ -1220,7 +1221,7 @@ updatenewitems(struct feed *f)
 		row = &(p->rows[i]); /* do not use pane_row_get */
 		item = (struct item *)row->data;
 		if (urlfile)
-			item->isnew = urls_isnew(item->link);
+			item->isnew = urls_isnew(item->matchnew);
 		else
 			item->isnew = (item->timeok && item->timestamp >= comparetime);
 		row->bold = item->isnew;
@@ -1269,7 +1270,7 @@ feed_count(struct feed *f, FILE *fp)
 		parseline(line, fields);
 
 		if (urlfile) {
-			f->totalnew += urls_isnew(fields[FieldLink]);
+			f->totalnew += urls_isnew(fields[fields[FieldLink][0] ? FieldLink : FieldId]);
 		} else {
 			parsedtime = 0;
 			if (!strtotime(fields[FieldUnixTimestamp], &parsedtime))
@@ -1695,7 +1696,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			row = &(p->rows[i]); /* use pane_row_get: no need for lazyload */
 			item = (struct item *)row->data;
 			if (item->isnew != isnew) {
-				fputs(item->link, fp);
+				fputs(item->matchnew, fp);
 				putc('\n', fp);
 			}
 		}
