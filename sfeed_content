@@ -1,5 +1,5 @@
 #!/bin/sh
-# RSS/Atom content viewer for a sfeed(5) line.
+# RSS/Atom content viewer for sfeed(5) lines.
 #
 # Dependencies:
 # - awk, sh, less or an other pager.
@@ -27,6 +27,10 @@ BEGIN {
 		"-display_charset=\"utf-8\" -assume_charset=\"utf-8\" ";
 }
 {
+	if (previtem)
+		print "\f";
+	previtem = 1;
+
 	print "Title:     " $2;
 	if (length($7))
 		print "Author:    " $7;
@@ -46,6 +50,5 @@ BEGIN {
 		print unescape($4) | htmlconv;
 		close(htmlconv);
 	}
-	exit;
 }' | \
 ${PAGER:-less -R}
