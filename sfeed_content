@@ -7,10 +7,19 @@
 
 awk -F '\t' '
 function unescape(s) {
-	gsub("\\\\t", "\t", s);
-	gsub("\\\\n", "\n", s);
-	gsub("\\\\\\\\", "\\", s);
-	return s;
+	for (data = ""; (idx = index(s, "\\")); s = substr(s, idx + 2)) {
+		prev = substr(s, 1, idx - 1)
+		c = substr(s, idx + 1, 1)
+		if (c == "t")
+			data = data prev "\t"
+		else if (c == "n")
+			data = data prev "\n"
+		else if (c == "\\")
+			data = data prev "\\"
+		else
+			data = data prev # ignore other.
+	}
+	return data s # rest
 }
 BEGIN {
 	htmlconv = "lynx -stdin -dump " \
