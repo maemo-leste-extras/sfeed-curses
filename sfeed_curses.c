@@ -286,8 +286,8 @@ strcasestr(const char *h, const char *n)
 }
 
 /* Splits fields in the line buffer by replacing TAB separators with NUL ('\0')
- * terminators and assign these fields as pointers. If there are less fields
- * than expected then the field is an empty string constant. */
+   terminators and assign these fields as pointers. If there are less fields
+   than expected then the field is an empty string constant. */
 void
 parseline(char *line, char *fields[FieldLast])
 {
@@ -357,7 +357,7 @@ colw(const char *s)
 }
 
 /* Format `len' columns of characters. If string is shorter pad the rest
- * with characters `pad`. */
+   with characters `pad`. */
 int
 utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 {
