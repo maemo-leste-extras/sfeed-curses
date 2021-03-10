@@ -2062,8 +2062,6 @@ nextpage:
 		case 'n': /* search again (forward) */
 		case 'N': /* search again (backward) */
 			p = &panes[selpane];
-			if (!p->nrows)
-				break;
 
 			/* prompt for new input */
 			if (ch == '?' || ch == '/') {
@@ -2073,7 +2071,7 @@ nextpage:
 				                  "Search (%s):", tmp);
 				statusbar.dirty = 1;
 			}
-			if (!search)
+			if (!search || !p->nrows)
 				break;
 
 			if (ch == '/' || ch == 'n') {
