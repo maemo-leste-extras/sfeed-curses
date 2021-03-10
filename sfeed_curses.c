@@ -39,17 +39,6 @@
 #endif
 #include SFEED_THEME
 
-static char *plumbercmd = "xdg-open"; /* env variable: $SFEED_PLUMBER */
-static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */
-static char *yankercmd = "xclip -r"; /* env variable: $SFEED_YANKER */
-static char *markreadcmd = "sfeed_markread read"; /* env variable: $SFEED_MARK_READ */
-static char *markunreadcmd = "sfeed_markread unread"; /* env variable: $SFEED_MARK_UNREAD */
-static char *cmdenv; /* env variable: $SFEED_AUTOCMD */
-static int plumberia = 0; /* env variable: $SFEED_PLUMBER_INTERACTIVE */
-static int piperia = 1; /* env variable: $SFEED_PIPER_INTERACTIVE */
-static int yankeria = 0; /* env variable: $SFEED_YANKER_INTERACTIVE */
-static int lazyload = 0; /* env variable: $SFEED_LAZYLOAD */
-
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
 };
@@ -173,6 +162,17 @@ static char *urlfile, **urls;
 static size_t nurls;
 
 volatile sig_atomic_t sigstate = 0;
+
+static char *plumbercmd = "xdg-open"; /* env variable: $SFEED_PLUMBER */
+static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */
+static char *yankercmd = "xclip -r"; /* env variable: $SFEED_YANKER */
+static char *markreadcmd = "sfeed_markread read"; /* env variable: $SFEED_MARK_READ */
+static char *markunreadcmd = "sfeed_markread unread"; /* env variable: $SFEED_MARK_UNREAD */
+static char *cmdenv; /* env variable: $SFEED_AUTOCMD */
+static int plumberia = 0; /* env variable: $SFEED_PLUMBER_INTERACTIVE */
+static int piperia = 1; /* env variable: $SFEED_PIPER_INTERACTIVE */
+static int yankeria = 0; /* env variable: $SFEED_YANKER_INTERACTIVE */
+static int lazyload = 0; /* env variable: $SFEED_LAZYLOAD */
 
 int
 ttywritef(const char *fmt, ...)
