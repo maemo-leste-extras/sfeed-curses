@@ -156,6 +156,10 @@ Resize the pane dimensions relative to the terminal size.
 .El
 .Sh ENVIRONMENT VARIABLES
 .Bl -tag -width Ds
+.It Ev SFEED_AUTOCMD
+Read and process a sequence of keys as input commands from this environment
+variable first, afterwards read from stdin as usual.
+This can be useful to automate certain actions at the start.
 .It Ev SFEED_PIPER
 A program where the whole TAB-Separated Value line is piped to.
 By default this is "sfeed_content".

@@ -44,6 +44,7 @@ static char *pipercmd = "sfeed_content"; /* env variable: $SFEED_PIPER */
 static char *yankercmd = "xclip -r"; /* env variable: $SFEED_YANKER */
 static char *markreadcmd = "sfeed_markread read"; /* env variable: $SFEED_MARK_READ */
 static char *markunreadcmd = "sfeed_markread unread"; /* env variable: $SFEED_MARK_UNREAD */
+static char *cmdenv; /* env variable: $SFEED_AUTOCMD */
 static int plumberia = 0; /* env variable: $SFEED_PLUMBER_INTERACTIVE */
 static int piperia = 1; /* env variable: $SFEED_PIPER_INTERACTIVE */
 static int yankeria = 0; /* env variable: $SFEED_YANKER_INTERACTIVE */
@@ -982,6 +983,9 @@ readch(void)
 	fd_set readfds;
 	struct timeval tv;
 
+	if (cmdenv && *cmdenv)
+		return *(cmdenv++);
+
 	for (;;) {
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
@@ -1819,6 +1823,7 @@ main(int argc, char *argv[])
 	if ((tmp = getenv("SFEED_LAZYLOAD")))
 		lazyload = !strcmp(tmp, "1");
 	urlfile = getenv("SFEED_URL_FILE"); /* can be NULL */
+	cmdenv = getenv("SFEED_AUTOCMD"); /* can be NULL */
 
 	panes[PaneFeeds].row_format = feed_row_format;
 	panes[PaneFeeds].row_match = feed_row_match;
