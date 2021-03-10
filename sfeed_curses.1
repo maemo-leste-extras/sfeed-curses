@@ -86,8 +86,12 @@ height by 1 column.
 Use a fixed sidebar size for the current layout and increase the fixed width or
 height by 1 column.
 .It =
-Reset the sidebar width or height to automatic adjustment for the current
-layout.
+Reset the sidebar size to automaticly adjust for the current layout.
+With the vertical layout the width is the longest feedname with the item counts
+right-aligned.
+With the horizontal layout the height is half of the window height (minus the
+statusbar) or otherwise the total amount of visible feeds, whichever fits the
+best.
 .It t
 Toggle showing only feeds with new items in the sidebar.
 .It a, e, @
@@ -132,14 +136,14 @@ This will only work when
 .Ev SFEED_URL_FILE
 is set.
 .It 1
-Set the current layout to a vertical mode. Showing a feeds sidebar to the left
-and the feed items to the right.
+Set the current layout to a vertical mode.
+Showing a feeds sidebar to the left and the feed items to the right.
 .It 2
-Set the current layout to a horizontal mode. Showing a feeds sidebar on the top
-and the feed items on the bottom.
+Set the current layout to a horizontal mode.
+Showing a feeds sidebar on the top and the feed items on the bottom.
 .It 3
-Set the current layout to a monocle mode. Showing only one feeds or an feed
-items pane at once.
+Set the current layout to a monocle mode.
+Showing either a feeds or an feed items pane.
 .It q, EOF
 Quit
 .El
