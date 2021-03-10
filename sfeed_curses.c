@@ -25,12 +25,14 @@
 #include "minicurses.h"
 #endif
 
-#define LEN(a) sizeof((a))/sizeof((a)[0])
+#define LEN(a)   sizeof((a))/sizeof((a)[0])
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #define PAD_TRUNCATE_SYMBOL    "\xe2\x80\xa6" /* symbol: "ellipsis" */
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
 #define SCROLLBAR_SYMBOL_TICK  " "
+#define LINEBAR_SYMBOL_BAR     "\xe2\x94\x80" /* symbol: "light horizontal" */
+#define LINEBAR_SYMBOL_RIGHT   "\xe2\x94\xa4" /* symbol: "light vertical and left" */
 #define UTF_INVALID_SYMBOL     "\xef\xbf\xbd" /* symbol: "replacement" */
 
 /* color-theme */
@@ -41,6 +43,10 @@
 
 enum {
 	ATTR_RESET = 0,	ATTR_BOLD_ON = 1, ATTR_FAINT_ON = 2, ATTR_REVERSE_ON = 7
+};
+
+enum Layout {
+	LayoutVertical = 0, LayoutHorizontal, LayoutMonocle, LayoutLast
 };
 
 enum Pane { PaneFeeds, PaneItems, PaneLast };
@@ -100,6 +106,14 @@ struct statusbar {
 	int dirty; /* needs draw update */
 };
 
+struct linebar {
+	int x; /* absolute x position on the screen */
+	int y; /* absolute y position on the screen */
+	int width; /* absolute width of the line */
+	int hidden; /* is visible or not */
+	int dirty; /* needs draw update */
+};
+
 /* /UI */
 
 struct item {
@@ -130,7 +144,7 @@ struct feed {
 void alldirty(void);
 void cleanup(void);
 void draw(void);
-int getsidebarwidth(void);
+int getsidebarsize(void);
 void markread(struct pane *, off_t, off_t, int);
 void pane_draw(struct pane *);
 void sighandler(int);
@@ -140,12 +154,15 @@ void urls_free(void);
 int urls_isnew(const char *);
 void urls_read(void);
 
+static struct linebar linebar;
 static struct statusbar statusbar;
 static struct pane panes[PaneLast];
 static struct scrollbar scrollbars[PaneLast]; /* each pane has a scrollbar */
 static struct win win;
 static size_t selpane;
-static int fixedsidebarwidth = -1; /* fixed sidebar width, < 0 is automatic */
+/* fixed sidebar size, < 0 is automatic */
+static int fixedsidebarsizes[LayoutLast] = { -1, -1, -1 };
+static int layout = LayoutVertical, prevlayout = LayoutVertical;
 static int onlynew = 0; /* show only new in sidebar */
 static int usemouse = 1; /* use xterm mouse tracking */
 
@@ -817,36 +834,75 @@ pane_draw(struct pane *p)
 }
 
 void
+setlayout(int n)
+{
+	if (layout != LayoutMonocle)
+		prevlayout = layout; /* previous non-monocle layout */
+	layout = n;
+}
+
+void
 updategeom(void)
 {
-	int w, x;
+	int barsize, h, w, x = 0, y = 0;
 
-	panes[PaneFeeds].width = getsidebarwidth();
-	if (win.width && panes[PaneFeeds].width >= win.width)
-		panes[PaneFeeds].width = win.width - 1;
-	panes[PaneFeeds].x = 0;
-	panes[PaneFeeds].y = 0;
-	/* reserve space for statusbar */
-	panes[PaneFeeds].height = MAX(win.height - 1, 1);
+	panes[PaneFeeds].hidden = layout == LayoutMonocle && (selpane != PaneFeeds);
+	panes[PaneItems].hidden = layout == LayoutMonocle && (selpane != PaneItems);
+	linebar.hidden = layout != LayoutHorizontal;
 
-	/* NOTE: updatesidebar() must happen before this function for the
-	   remaining width */
-	if (!panes[PaneFeeds].hidden) {
-		w = win.width - panes[PaneFeeds].width;
-		x = panes[PaneFeeds].x + panes[PaneFeeds].width;
+	w = win.width;
+	/* always reserve space for statusbar */
+	h = MAX(win.height - 1, 1);
+
+	panes[PaneFeeds].x = x;
+	panes[PaneFeeds].y = y;
+
+	switch (layout) {
+	case LayoutVertical:
+		/* NOTE: updatesidebar() must happen before this function for the
+		   remaining width */
+		barsize = getsidebarsize();
+		if (w && barsize >= w)
+			barsize = w - 1;
+
+		panes[PaneFeeds].width = MAX(barsize, 0);
+		x += panes[PaneFeeds].width;
+		w -= panes[PaneFeeds].width;
+
 		/* space for scrollbar if sidebar is visible */
 		w--;
 		x++;
-	} else {
-		w = win.width;
-		x = 0;
+
+		panes[PaneFeeds].height = MAX(h, 1);
+		break;
+	case LayoutHorizontal:
+		barsize = getsidebarsize();
+		if (h && barsize >= h / 2)
+			barsize = h / 2;
+
+		panes[PaneFeeds].height = MAX(barsize, 1);
+
+		h -= panes[PaneFeeds].height;
+		y += panes[PaneFeeds].height;
+
+		linebar.x = 0;
+		linebar.y = y;
+		linebar.width = win.width;
+
+		h -= 1;
+		y += 1;
+		panes[PaneFeeds].width = MAX(w - 1, 0);
+		break;
+	case LayoutMonocle:
+		panes[PaneFeeds].height = MAX(h, 1);
+		panes[PaneFeeds].width = MAX(w - 1, 0);
+		break;
 	}
 
+	panes[PaneItems].width = MAX(w - 1, 0);
+	panes[PaneItems].height = MAX(h, 1);
 	panes[PaneItems].x = x;
-	panes[PaneItems].width = MAX(w - 1, 0); /* rest and space for scrollbar */
-	panes[PaneItems].height = panes[PaneFeeds].height;
-	panes[PaneItems].y = panes[PaneFeeds].y;
-	panes[PaneItems].hidden = !panes[PaneItems].width || !panes[PaneItems].height;
+	panes[PaneItems].y = y;
 
 	scrollbars[PaneFeeds].x = panes[PaneFeeds].x + panes[PaneFeeds].width;
 	scrollbars[PaneFeeds].y = panes[PaneFeeds].y;
@@ -856,7 +912,7 @@ updategeom(void)
 	scrollbars[PaneItems].x = panes[PaneItems].x + panes[PaneItems].width;
 	scrollbars[PaneItems].y = panes[PaneItems].y;
 	scrollbars[PaneItems].size = panes[PaneItems].height;
-	scrollbars[PaneItems].hidden = panes[PaneItems].hidden;
+	scrollbars[PaneItems].hidden = panes[PaneItems].width ? 0 : 1;
 
 	/* statusbar below */
 	statusbar.width = win.width;
@@ -1043,6 +1099,27 @@ uiprompt(int x, int y, char *fmt, ...)
 	cursorrestore();
 
 	return input;
+}
+
+void
+linebar_draw(struct linebar *b)
+{
+	int i;
+
+	if (!b->dirty)
+		return;
+	b->dirty = 0;
+	if (b->hidden || !b->width)
+		return;
+
+	cursorsave();
+	cursormove(b->x, b->y);
+	THEME_LINEBAR();
+	for (i = 0; i < b->width - 1; i++)
+		ttywrite(LINEBAR_SYMBOL_BAR);
+	ttywrite(LINEBAR_SYMBOL_RIGHT);
+	attrmode(ATTR_RESET);
+	cursorrestore();
 }
 
 void
@@ -1338,29 +1415,40 @@ feeds_reloadall(void)
 }
 
 int
-getsidebarwidth(void)
+getsidebarsize(void)
 {
 	struct feed *feed;
 	size_t i;
-	int len, width = 0;
+	int len, size;
 
-	/* fixed sidebar width? else calculate an optimal size automatically */
-	if (fixedsidebarwidth >= 0)
-		return fixedsidebarwidth;
+	/* fixed sidebar size? else calculate an optimal size automatically */
+	if (fixedsidebarsizes[layout] >= 0)
+		return fixedsidebarsizes[layout];
 
-	for (i = 0; i < nfeeds; i++) {
-		feed = &feeds[i];
+	switch (layout) {
+	case LayoutVertical:
+		for (i = 0, size = 0; i < nfeeds; i++) {
+			feed = &feeds[i];
+			len = snprintf(NULL, 0, " (%lu/%lu)",
+			               feed->totalnew, feed->total) +
+				       colw(feed->name);
+			if (len > size)
+				size = len;
 
-		len = snprintf(NULL, 0, " (%lu/%lu)", feed->totalnew, feed->total) +
-			colw(feed->name);
-		if (len > width)
-			width = len;
-
-		if (onlynew && feed->totalnew == 0)
-			continue;
+			if (onlynew && feed->totalnew == 0)
+				continue;
+		}
+		return size;
+	case LayoutHorizontal:
+		for (i = 0, size = 0; i < nfeeds; i++) {
+			feed = &feeds[i];
+			if (onlynew && feed->totalnew == 0)
+				continue;
+			size++;
+		}
+		return size;
 	}
-
-	return width;
+	return 0;
 }
 
 void
@@ -1370,15 +1458,24 @@ updatesidebar(void)
 	struct row *row;
 	struct feed *feed;
 	size_t i, nrows;
-	int oldwidth;
+	int oldvalue, newvalue;
 
 	p = &panes[PaneFeeds];
-
 	if (!p->rows)
 		p->rows = ecalloc(sizeof(p->rows[0]), nfeeds + 1);
 
-	oldwidth = p->width;
-	p->width = getsidebarwidth();
+	switch (layout) {
+	case LayoutVertical:
+		oldvalue = p->width;
+		newvalue = getsidebarsize();
+		p->width = newvalue;
+		break;
+	case LayoutHorizontal:
+		oldvalue = p->height;
+		newvalue = getsidebarsize();
+		p->height = newvalue;
+		break;
+	}
 
 	nrows = 0;
 	for (i = 0; i < nfeeds; i++) {
@@ -1395,10 +1492,18 @@ updatesidebar(void)
 	}
 	p->nrows = nrows;
 
-	if (p->width != oldwidth)
-		updategeom();
-	else
+	switch (layout) {
+	case LayoutVertical:
+	case LayoutHorizontal:
+		if (oldvalue != newvalue)
+			updategeom();
+		else
+			p->dirty = 1;
+		break;
+	default:
 		p->dirty = 1;
+		break;
+	}
 
 	if (!p->nrows)
 		p->pos = 0;
@@ -1429,6 +1534,7 @@ alldirty(void)
 	panes[PaneItems].dirty = 1;
 	scrollbars[PaneFeeds].dirty = 1;
 	scrollbars[PaneItems].dirty = 1;
+	linebar.dirty = 1;
 	statusbar.dirty = 1;
 }
 
@@ -1440,8 +1546,8 @@ draw(void)
 	size_t i;
 
 	if (win.dirty) {
-		clearscreen();
 		win.dirty = 0;
+		clearscreen();
 	}
 
 	/* There is the same amount and indices of panes and scrollbars. */
@@ -1455,6 +1561,8 @@ draw(void)
 		                 panes[i].nrows, panes[i].height);
 		scrollbar_draw(&scrollbars[i]);
 	}
+
+	linebar_draw(&linebar);
 
 	/* If item selection text changed then update the status text. */
 	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
@@ -1481,7 +1589,7 @@ mousereport(int button, int release, int x, int y)
 
 	for (i = 0; i < LEN(panes); i++) {
 		p = &panes[i];
-		if (p->hidden)
+		if (p->hidden || !p->width || !p->height)
 			continue;
 
 		if (!(x >= p->x && x < p->x + p->width &&
@@ -1510,6 +1618,11 @@ mousereport(int button, int release, int x, int y)
 				/* redraw row: counts could be changed */
 				updatesidebar();
 				updatetitle();
+
+				if (layout == LayoutMonocle) {
+					selpane = PaneItems;
+					updategeom();
+				}
 			} else if (i == PaneItems) {
 				if (dblclick && !changedpane) {
 					row = pane_row_get(p, p->pos);
@@ -1788,6 +1901,9 @@ main(int argc, char *argv[])
 	urlfile = getenv("SFEED_URL_FILE"); /* can be NULL */
 	cmdenv = getenv("SFEED_AUTOCMD"); /* can be NULL */
 
+	setlayout(argc <= 1 ? LayoutMonocle : LayoutVertical);
+	selpane = layout == LayoutMonocle ? PaneItems : PaneFeeds;
+
 	panes[PaneFeeds].row_format = feed_row_format;
 	panes[PaneFeeds].row_match = feed_row_match;
 	panes[PaneItems].row_format = item_row_format;
@@ -1824,14 +1940,6 @@ main(int argc, char *argv[])
 	}
 	if (argc == 1)
 		feeds[0].fp = NULL;
-
-	if (argc > 1) {
-		panes[PaneFeeds].hidden = 0;
-		selpane = PaneFeeds;
-	} else {
-		panes[PaneFeeds].hidden = 1;
-		selpane = PaneItems;
-	}
 
 	if ((devnullfd = open("/dev/null", O_WRONLY)) == -1)
 		die("open: /dev/null");
@@ -1918,15 +2026,21 @@ keyleft:
 			if (selpane == PaneFeeds)
 				break;
 			selpane = PaneFeeds;
+			if (layout == LayoutMonocle)
+				updategeom();
 			break;
 keyright:
 		case 'l':
 			if (selpane == PaneItems)
 				break;
 			selpane = PaneItems;
+			if (layout == LayoutMonocle)
+				updategeom();
 			break;
 		case '\t':
 			selpane = selpane == PaneFeeds ? PaneItems : PaneFeeds;
+			if (layout == LayoutMonocle)
+				updategeom();
 			break;
 startpos:
 		case 'g':
@@ -2004,24 +2118,18 @@ nextpage:
 			usemouse = !usemouse;
 			mousemode(usemouse);
 			break;
-		case 's': /* toggle sidebar */
-			panes[PaneFeeds].hidden = !panes[PaneFeeds].hidden;
-			if (selpane == PaneFeeds && panes[selpane].hidden)
-				selpane = PaneItems;
-			updategeom();
-			break;
 		case '<': /* decrease fixed sidebar width */
 		case '>': /* increase fixed sidebar width */
-			if (fixedsidebarwidth < 0)
-				fixedsidebarwidth = getsidebarwidth();
-			if (ch == '<' && fixedsidebarwidth > 0)
-				fixedsidebarwidth--;
+			if (fixedsidebarsizes[layout] < 0)
+				fixedsidebarsizes[layout] = getsidebarsize();
+			if (ch == '<' && fixedsidebarsizes[layout] > 0)
+				fixedsidebarsizes[layout]--;
 			else if (ch != '<')
-				fixedsidebarwidth++;
+				fixedsidebarsizes[layout]++;
 			updategeom();
 			break;
-		case '=': /* reset fixed sidebar width to automatic size */
-			fixedsidebarwidth = -1;
+		case '=': /* reset fixed sidebar to automatic size */
+			fixedsidebarsizes[layout] = -1;
 			updategeom();
 			break;
 		case 't': /* toggle showing only new in sidebar */
@@ -2043,6 +2151,11 @@ nextpage:
 				/* redraw row: counts could be changed */
 				updatesidebar();
 				updatetitle();
+
+				if (layout == LayoutMonocle) {
+					selpane = PaneItems;
+					updategeom();
+				}
 			} else if (selpane == PaneItems && panes[selpane].nrows) {
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
@@ -2082,6 +2195,16 @@ nextpage:
 				p = &panes[selpane];
 				markread(p, p->pos, p->pos, ch == 'r');
 			}
+			break;
+		case 's': /* toggle layout between monocle or non-monocle */
+			setlayout(layout == LayoutMonocle ? prevlayout : LayoutMonocle);
+			updategeom();
+			break;
+		case '1': /* vertical layout */
+		case '2': /* horizontal layout */
+		case '3': /* monocle layout */
+			setlayout(ch - '1');
+			updategeom();
 			break;
 		case 4: /* EOT */
 		case 'q': goto end;

@@ -1,4 +1,4 @@
-.Dd February 20, 2021
+.Dd March 10, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -78,13 +78,16 @@ Reload all feed files which were specified as arguments on startup.
 .It m
 Toggle mouse-mode.
 .It s
-Toggle showing the feeds pane sidebar.
+Toggle between monocle layout and the previous non-monocle layout.
 .It <
-Use fixed sidebar width and decrease fixed width by 1 column.
+Use a fixed sidebar size for the current layout and decrease the fixed width or
+height by 1 column.
 .It >
-Use fixed sidebar width and increase fixed width by 1 column.
+Use a fixed sidebar size for the current layout and increase the fixed width or
+height by 1 column.
 .It =
-Reset sidebar width to automatic adjustment.
+Reset the sidebar width or height to automatic adjustment for the current
+layout.
 .It t
 Toggle showing only feeds with new items in the sidebar.
 .It a, e, @
@@ -128,6 +131,15 @@ Mark all items of the current loaded feed as unread.
 This will only work when
 .Ev SFEED_URL_FILE
 is set.
+.It 1
+Set the current layout to a vertical mode. Showing a feeds sidebar to the left
+and the feed items to the right.
+.It 2
+Set the current layout to a horizontal mode. Showing a feeds sidebar on the top
+and the feed items on the bottom.
+.It 3
+Set the current layout to a monocle mode. Showing only one feeds or an feed
+items pane at once.
 .It q, EOF
 Quit
 .El
