@@ -816,43 +816,6 @@ pane_draw(struct pane *p)
 		pane_row_draw(p, y + pos, (y + pos) == p->pos);
 }
 
-/* Cycle visible pane in a direction, but don't cycle back. */
-void
-cyclepanen(int n)
-{
-	int i;
-
-	if (n < 0) {
-		n = -n; /* absolute */
-		for (i = selpane; n && i - 1 >= 0; i--) {
-			if (panes[i - 1].hidden)
-				continue;
-			n--;
-			selpane = i - 1;
-		}
-	} else if (n > 0) {
-		for (i = selpane; n && i + 1 < LEN(panes); i++) {
-			if (panes[i + 1].hidden)
-				continue;
-			n--;
-			selpane = i + 1;
-		}
-	}
-}
-
-/* Cycle visible panes. */
-void
-cyclepane(void)
-{
-	size_t i;
-
-	i = selpane;
-	cyclepanen(+1);
-	/* reached end, cycle back to first most-visible */
-	if (i == selpane)
-		cyclepanen(-PaneLast);
-}
-
 void
 updategeom(void)
 {
@@ -1952,14 +1915,18 @@ keydown:
 			break;
 keyleft:
 		case 'h':
-			cyclepanen(-1);
+			if (selpane == PaneFeeds)
+				break;
+			selpane = PaneFeeds;
 			break;
 keyright:
 		case 'l':
-			cyclepanen(+1);
+			if (selpane == PaneItems)
+				break;
+			selpane = PaneItems;
 			break;
 		case '\t':
-			cyclepane();
+			selpane = selpane == PaneFeeds ? PaneItems : PaneFeeds;
 			break;
 startpos:
 		case 'g':
