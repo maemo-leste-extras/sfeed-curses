@@ -27,6 +27,7 @@
 
 #define LEN(a)   sizeof((a))/sizeof((a)[0])
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #define PAD_TRUNCATE_SYMBOL    "\xe2\x80\xa6" /* symbol: "ellipsis" */
 #define SCROLLBAR_SYMBOL_BAR   "\xe2\x94\x82" /* symbol: "light vertical" */
@@ -862,10 +863,8 @@ updategeom(void)
 		/* NOTE: updatesidebar() must happen before this function for the
 		   remaining width */
 		barsize = getsidebarsize();
-		if (w && barsize >= w)
-			barsize = w - 1;
-
 		panes[PaneFeeds].width = MAX(barsize, 0);
+
 		x += panes[PaneFeeds].width;
 		w -= panes[PaneFeeds].width;
 
@@ -877,9 +876,6 @@ updategeom(void)
 		break;
 	case LayoutHorizontal:
 		barsize = getsidebarsize();
-		if (h && barsize >= h / 2)
-			barsize = h / 2;
-
 		panes[PaneFeeds].height = MAX(barsize, 1);
 
 		h -= panes[PaneFeeds].height;
@@ -1438,7 +1434,7 @@ getsidebarsize(void)
 			if (onlynew && feed->totalnew == 0)
 				continue;
 		}
-		return size;
+		return MIN(win.width - 1, size);
 	case LayoutHorizontal:
 		for (i = 0, size = 0; i < nfeeds; i++) {
 			feed = &feeds[i];
@@ -1446,7 +1442,7 @@ getsidebarsize(void)
 				continue;
 			size++;
 		}
-		return size;
+		return MIN((win.height - 1) / 2, size);
 	}
 	return 0;
 }
