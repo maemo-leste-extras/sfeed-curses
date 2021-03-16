@@ -1,4 +1,4 @@
-.Dd March 10, 2021
+.Dd March 16, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -100,6 +100,8 @@ The URL is passed as a parameter to the program specified in
 .Ev SFEED_PLUMBER .
 .It o, ENTER, RETURN
 Feeds pane: load feed and its items.
+In the monocle layout it will also switch to the items pane after loading the
+feed items.
 Items pane: plumb current item URL, the URL is passed as a parameter to
 the program specified in
 .Ev SFEED_PLUMBER .
@@ -152,6 +154,8 @@ When mouse-mode is enabled the below actions are available.
 .Bl -tag -width Ds
 .It LEFT-CLICK
 Feeds pane: select and load the feed and its items.
+In the monocle layout it will also switch to the items pane after loading the
+feed items.
 Items pane: select item, when already selected then plumb it.
 .It RIGHT-CLICK
 Feeds pane: select feed, but do not load it.
