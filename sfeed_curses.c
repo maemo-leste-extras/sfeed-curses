@@ -214,8 +214,13 @@ ttywrite(const char *s)
 	return write(1, s, strlen(s));
 }
 
+/* hint for compilers and static analyzers that a function exits */
+#ifndef __dead
+#define __dead
+#endif
+
 /* print to stderr, call cleanup() and _exit(). */
-void
+__dead void
 die(const char *fmt, ...)
 {
 	va_list ap;
