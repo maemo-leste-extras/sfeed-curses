@@ -1329,6 +1329,7 @@ updatenewitems(struct feed *f)
 void
 feed_load(struct feed *f, FILE *fp)
 {
+	/* reuse local buffers */
 	static struct items items;
 	struct pane *p;
 	size_t i;
@@ -1750,9 +1751,12 @@ mousereport(int button, int release, int x, int y)
 char *
 feed_row_format(struct pane *p, struct row *row)
 {
+	/* reuse local buffers */
+	static char *bufw, *text;
+	static size_t bufwsize, textsize;
 	struct feed *feed;
-	static char text[1024];
-	char bufw[256], counts[128];
+	size_t needsize;
+	char counts[128];
 	int len, w;
 
 	feed = (struct feed *)row->data;
@@ -1765,8 +1769,20 @@ feed_row_format(struct pane *p, struct row *row)
 	else
 		w = p->width - len;
 
-	if (utf8pad(bufw, sizeof(bufw), feed->name, w, ' ') != -1)
-		snprintf(text, sizeof(text), "%s%s", bufw, counts);
+	needsize = (w + 1) * 4;
+	if (needsize > bufwsize) {
+		bufwsize = needsize;
+		bufw = erealloc(bufw, bufwsize);
+	}
+
+	needsize = bufwsize + sizeof(counts) + 1;
+	if (needsize > textsize) {
+		textsize = needsize;
+		text = erealloc(text, textsize);
+	}
+
+	if (utf8pad(bufw, bufwsize, feed->name, w, ' ') != -1)
+		snprintf(text, textsize, "%s%s", bufw, counts);
 	else
 		text[0] = '\0';
 
@@ -1820,19 +1836,28 @@ item_row_get(struct pane *p, off_t pos)
 char *
 item_row_format(struct pane *p, struct row *row)
 {
-	static char text[1024];
+	/* reuse local buffers */
+	static char *text;
+	static size_t textsize;
 	struct item *item;
 	struct tm tm;
+	size_t needsize;
 
 	item = (struct item *)row->data;
 
+	needsize = strlen(item->fields[FieldTitle]) + 21;
+	if (needsize > textsize) {
+		textsize = needsize;
+		text = erealloc(text, textsize);
+	}
+
 	if (item->timeok && localtime_r(&(item->timestamp), &tm)) {
-		snprintf(text, sizeof(text), "%c %04d-%02d-%02d %02d:%02d %s",
+		snprintf(text, textsize, "%c %04d-%02d-%02d %02d:%02d %s",
 		         item->fields[FieldEnclosure][0] ? '@' : ' ',
 		         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		         tm.tm_hour, tm.tm_min, item->fields[FieldTitle]);
 	} else {
-		snprintf(text, sizeof(text), "%c                  %s",
+		snprintf(text, textsize, "%c                  %s",
 		         item->fields[FieldEnclosure][0] ? '@' : ' ',
 		         item->fields[FieldTitle]);
 	}
