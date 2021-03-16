@@ -271,6 +271,7 @@ estrdup(const char *s)
 	return p;
 }
 
+/* strcasestr() included for portability */
 #undef strcasestr
 char *
 strcasestr(const char *h, const char *n)
