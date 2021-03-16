@@ -959,7 +959,9 @@ updategeom(void)
 	scrollbars[PaneItems].x = panes[PaneItems].x + panes[PaneItems].width;
 	scrollbars[PaneItems].y = panes[PaneItems].y;
 	scrollbars[PaneItems].size = panes[PaneItems].height;
-	scrollbars[PaneItems].hidden = panes[PaneItems].width ? 0 : 1;
+	/* if the items don't fit on the screen then hide the scrollbar,
+	   preventing it from overlapping with the feeds scrollbar */
+	scrollbars[PaneItems].hidden = panes[PaneItems].width ? panes[PaneItems].hidden : 1;
 
 	/* statusbar below */
 	statusbar.width = win.width;
