@@ -905,7 +905,7 @@ setlayout(int n)
 void
 updategeom(void)
 {
-	int barsize, h, w, x = 0, y = 0;
+	int h, w, x = 0, y = 0;
 
 	panes[PaneFeeds].hidden = layout == LayoutMonocle && (selpane != PaneFeeds);
 	panes[PaneItems].hidden = layout == LayoutMonocle && (selpane != PaneItems);
@@ -920,10 +920,7 @@ updategeom(void)
 
 	switch (layout) {
 	case LayoutVertical:
-		/* NOTE: updatesidebar() must happen before this function for the
-		   remaining width */
-		barsize = getsidebarsize();
-		panes[PaneFeeds].width = MAX(barsize, 0);
+		panes[PaneFeeds].width = getsidebarsize();
 
 		x += panes[PaneFeeds].width;
 		w -= panes[PaneFeeds].width;
@@ -935,8 +932,7 @@ updategeom(void)
 		panes[PaneFeeds].height = MAX(h, 1);
 		break;
 	case LayoutHorizontal:
-		barsize = getsidebarsize();
-		panes[PaneFeeds].height = MAX(barsize, 1);
+		panes[PaneFeeds].height = getsidebarsize();
 
 		h -= panes[PaneFeeds].height;
 		y += panes[PaneFeeds].height;
@@ -1470,16 +1466,13 @@ feeds_reloadall(void)
 	updatetitle();
 }
 
+/* calculate optimal (default) size */
 int
-getsidebarsize(void)
+getsidebarsizedefault(void)
 {
 	struct feed *feed;
 	size_t i;
 	int len, size;
-
-	/* fixed sidebar size? else calculate an optimal size automatically */
-	if (fixedsidebarsizes[layout] >= 0)
-		return fixedsidebarsizes[layout];
 
 	switch (layout) {
 	case LayoutVertical:
@@ -1505,6 +1498,51 @@ getsidebarsize(void)
 		return MIN((win.height - 1) / 2, size);
 	}
 	return 0;
+}
+
+int
+getsidebarsize(void)
+{
+	int size;
+
+	/* fixed sidebar size? else calculate an optimal size */
+	if ((size = fixedsidebarsizes[layout]) < 0)
+		size = getsidebarsizedefault();
+
+	switch (layout) {
+	case LayoutVertical:
+		return MAX(size, 0);
+	case LayoutHorizontal:
+		return MAX(size, 1);
+	}
+
+	return size;
+}
+
+void
+adjustsidebarsize(int n)
+{
+	int size;
+
+	/* fixed sidebar size? else calculate an optimal size */
+	if ((size = fixedsidebarsizes[layout]) < 0)
+		size = getsidebarsizedefault();
+	if (n > 0) {
+		if (layout == LayoutVertical && size + 1 < win.width)
+			size++;
+		else if (layout == LayoutHorizontal && size + 1 < win.height)
+			size++;
+	} else if (n < 0) {
+		if (layout == LayoutVertical && size > 0)
+			size--;
+		else if (layout == LayoutHorizontal && size > 1)
+			size--;
+	}
+
+	if (size != fixedsidebarsizes[layout]) {
+		fixedsidebarsizes[layout] = size;
+		updategeom();
+	}
 }
 
 void
@@ -2174,13 +2212,7 @@ nextpage:
 			break;
 		case '<': /* decrease fixed sidebar width */
 		case '>': /* increase fixed sidebar width */
-			if (fixedsidebarsizes[layout] < 0)
-				fixedsidebarsizes[layout] = getsidebarsize();
-			if (ch == '<' && fixedsidebarsizes[layout] > 0)
-				fixedsidebarsizes[layout]--;
-			else if (ch != '<')
-				fixedsidebarsizes[layout]++;
-			updategeom();
+			adjustsidebarsize(ch == '<' ? -1 : +1);
 			break;
 		case '=': /* reset fixed sidebar to automatic size */
 			fixedsidebarsizes[layout] = -1;
