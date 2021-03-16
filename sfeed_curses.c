@@ -430,12 +430,66 @@ utf8pad(char *buf, size_t bufsiz, const char *s, size_t len, int pad)
 	return 0;
 }
 
+/* print `len' columns of characters. If string is shorter pad the rest with
+ * characters `pad`. */
+void
+printutf8pad(FILE *fp, const char *s, size_t len, int pad)
+{
+	wchar_t wc;
+	size_t col = 0, i, slen;
+	int inc, rl, w;
+
+	if (!len)
+		return;
+
+	slen = strlen(s);
+	for (i = 0; i < slen; i += inc) {
+		inc = 1; /* next byte */
+		if ((unsigned char)s[i] < 32) {
+			continue; /* skip control characters */
+		} else if ((unsigned char)s[i] >= 127) {
+			rl = mbtowc(&wc, s + i, slen - i < 4 ? slen - i : 4);
+			inc = rl;
+			if (rl < 0) {
+				mbtowc(NULL, NULL, 0); /* reset state */
+				inc = 1; /* invalid, seek next byte */
+				w = 1; /* replacement char is one width */
+			} else if ((w = wcwidth(wc)) == -1) {
+				continue;
+			}
+
+			if (col + w > len || (col + w == len && s[i + inc])) {
+				fputs("\xe2\x80\xa6", fp); /* ellipsis */
+				col++;
+				break;
+			} else if (rl < 0) {
+				fputs("\xef\xbf\xbd", fp); /* replacement */
+				col++;
+				continue;
+			}
+			fwrite(&s[i], 1, rl, fp);
+			col += w;
+		} else {
+			/* optimization: simple ASCII character */
+			if (col + 1 > len || (col + 1 == len && s[i + 1])) {
+				fputs("\xe2\x80\xa6", fp); /* ellipsis */
+				col++;
+				break;
+			}
+			putc(s[i], fp);
+			col++;
+		}
+
+	}
+	for (; col < len; ++col)
+		putc(pad, fp);
+}
+
 void
 printpad(const char *s, int width)
 {
-	char buf[1024];
-	if (utf8pad(buf, sizeof(buf), s, width, ' ') != -1)
-		ttywrite(buf);
+	printutf8pad(stdout, s, width, ' ');
+	fflush(stdout);
 }
 
 void
