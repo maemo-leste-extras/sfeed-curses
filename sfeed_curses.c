@@ -486,13 +486,6 @@ printutf8pad(FILE *fp, const char *s, size_t len, int pad)
 }
 
 void
-printpad(const char *s, int width)
-{
-	printutf8pad(stdout, s, width, ' ');
-	fflush(stdout);
-}
-
-void
 resettitle(void)
 {
 	ttywrite("\x1b""c"); /* rs1: reset title and state */
@@ -811,10 +804,12 @@ pane_row_draw(struct pane *p, off_t pos, int selected)
 		THEME_ITEM_BOLD();
 	if (selected)
 		THEME_ITEM_SELECTED();
-	if (row)
-		printpad(pane_row_text(p, row), p->width);
-	else
+	if (row) {
+		printutf8pad(stdout, pane_row_text(p, row), p->width, ' ');
+		fflush(stdout);
+	} else {
 		ttywritef("%-*.*s", p->width, p->width, "");
+	}
 
 	attrmode(ATTR_RESET);
 	cursorrestore();
@@ -1188,7 +1183,8 @@ statusbar_draw(struct statusbar *s)
 	THEME_STATUSBAR();
 	/* terminals without xenl (eat newline glitch) mess up scrolling when
 	   using the last cell on the last line on the screen. */
-	printpad(s->text, s->width - (!eat_newline_glitch));
+	printutf8pad(stdout, s->text, s->width - (!eat_newline_glitch), ' ');
+	fflush(stdout);
 	attrmode(ATTR_RESET);
 	cursorrestore();
 }
@@ -1329,7 +1325,7 @@ updatenewitems(struct feed *f)
 void
 feed_load(struct feed *f, FILE *fp)
 {
-	/* reuse local buffers */
+	/* static, reuse local buffers */
 	static struct items items;
 	struct pane *p;
 	size_t i;
@@ -1506,18 +1502,9 @@ getsidebarsize(void)
 {
 	int size;
 
-	/* fixed sidebar size? else calculate an optimal size */
 	if ((size = fixedsidebarsizes[layout]) < 0)
 		size = getsidebarsizedefault();
-
-	switch (layout) {
-	case LayoutVertical:
-		return MAX(size, 0);
-	case LayoutHorizontal:
-		return MAX(size, 1);
-	}
-
-	return size;
+	return MAX(size, layout == LayoutHorizontal ? 1 : 0);
 }
 
 void
@@ -1525,18 +1512,15 @@ adjustsidebarsize(int n)
 {
 	int size;
 
-	/* fixed sidebar size? else calculate an optimal size */
 	if ((size = fixedsidebarsizes[layout]) < 0)
 		size = getsidebarsizedefault();
 	if (n > 0) {
-		if (layout == LayoutVertical && size + 1 < win.width)
-			size++;
-		else if (layout == LayoutHorizontal && size + 1 < win.height)
+		if ((layout == LayoutVertical && size + 1 < win.width) ||
+		    (layout == LayoutHorizontal && size + 1 < win.height))
 			size++;
 	} else if (n < 0) {
-		if (layout == LayoutVertical && size > 0)
-			size--;
-		else if (layout == LayoutHorizontal && size > 1)
+		if ((layout == LayoutVertical && size > 0) ||
+		    (layout == LayoutHorizontal && size > 1))
 			size--;
 	}
 
@@ -1751,7 +1735,7 @@ mousereport(int button, int release, int x, int y)
 char *
 feed_row_format(struct pane *p, struct row *row)
 {
-	/* reuse local buffers */
+	/* static, reuse local buffers */
 	static char *bufw, *text;
 	static size_t bufwsize, textsize;
 	struct feed *feed;
@@ -1771,14 +1755,14 @@ feed_row_format(struct pane *p, struct row *row)
 
 	needsize = (w + 1) * 4;
 	if (needsize > bufwsize) {
+		bufw = erealloc(bufw, needsize);
 		bufwsize = needsize;
-		bufw = erealloc(bufw, bufwsize);
 	}
 
 	needsize = bufwsize + sizeof(counts) + 1;
 	if (needsize > textsize) {
+		text = erealloc(text, needsize);
 		textsize = needsize;
-		text = erealloc(text, textsize);
 	}
 
 	if (utf8pad(bufw, bufwsize, feed->name, w, ' ') != -1)
@@ -1836,7 +1820,7 @@ item_row_get(struct pane *p, off_t pos)
 char *
 item_row_format(struct pane *p, struct row *row)
 {
-	/* reuse local buffers */
+	/* static, reuse local buffers */
 	static char *text;
 	static size_t textsize;
 	struct item *item;
@@ -1847,8 +1831,8 @@ item_row_format(struct pane *p, struct row *row)
 
 	needsize = strlen(item->fields[FieldTitle]) + 21;
 	if (needsize > textsize) {
+		text = erealloc(text, needsize);
 		textsize = needsize;
-		text = erealloc(text, textsize);
 	}
 
 	if (item->timeok && localtime_r(&(item->timestamp), &tm)) {
