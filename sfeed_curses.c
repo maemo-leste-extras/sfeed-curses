@@ -1,3 +1,4 @@
+#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -622,9 +623,11 @@ win_update(struct win *w, int width, int height)
 void
 resizewin(void)
 {
-	setupterm(NULL, 1, NULL);
-	/* termios globals are changed: `lines` and `columns` */
-	win_update(&win, columns, lines);
+	struct winsize winsz;
+
+	if (ioctl(1, TIOCGWINSZ, &winsz) != -1 &&
+	    winsz.ws_col > 0 && winsz.ws_row > 0)
+		win_update(&win, winsz.ws_col, winsz.ws_row);
 	if (win.dirty)
 		alldirty();
 }
@@ -641,6 +644,7 @@ init(void)
 	tcur.c_cc[VTIME] = 0;
 	tcsetattr(0, TCSANOW, &tcur);
 
+	setupterm(NULL, 1, NULL);
 	resizewin();
 
 	appmode(1);
