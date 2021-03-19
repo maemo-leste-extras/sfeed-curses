@@ -514,6 +514,7 @@ void
 mousemode(int on)
 {
 	ttywrite(on ? "\x1b[?1000h" : "\x1b[?1000l"); /* xterm mouse mode */
+	ttywrite(on ? "\x1b[?1006h" : "\x1b[?1006l"); /* SGR mouse mode (if supported) */
 }
 
 void
@@ -1656,7 +1657,7 @@ draw(void)
 }
 
 void
-mousereport(int button, int release, int x, int y)
+mousereport(int button, int release, int mask, int x, int y)
 {
 	struct pane *p;
 	struct feed *f;
@@ -1727,6 +1728,20 @@ mousereport(int button, int release, int x, int y)
 		case 3: /* scroll up */
 		case 4: /* scroll down */
 			pane_scrollpage(p, button == 3 ? -1 : +1);
+			break;
+		case 7: /* side-button: backward */
+			if (selpane == PaneFeeds)
+				break;
+			selpane = PaneFeeds;
+			if (layout == LayoutMonocle)
+				updategeom();
+			break;
+		case 8: /* side-button: forward */
+			if (selpane == PaneItems)
+				break;
+			selpane = PaneItems;
+			if (layout == LayoutMonocle)
+				updategeom();
 			break;
 		}
 		return; /* do not bubble events */
@@ -1975,7 +1990,7 @@ main(int argc, char *argv[])
 	size_t i;
 	char *name, *tmp;
 	char *search = NULL; /* search text */
-	int ch, button, fd, x, y, release;
+	int button, ch, fd, mask, release, x, y;
 	off_t off;
 
 #ifdef __OpenBSD__
@@ -2066,31 +2081,64 @@ main(int argc, char *argv[])
 			if ((ch = readch()) < 0)
 				goto event;
 			switch (ch) {
-			case 'M': /* reported mouse event */
+			case 'M': /* mouse: X10 encoding */
 				if ((ch = readch()) < 0)
 					goto event;
+				button = ch - 32;
+				if ((ch = readch()) < 0)
+					goto event;
+				x = ch - 32;
+				if ((ch = readch()) < 0)
+					goto event;
+				y = ch - 32;
+
+				mask = button & (4 | 8 | 16); /* shift, meta, ctrl */
+				button &= ~mask; /* unset key mask */
+
 				/* button numbers (0 - 2) encoded in lowest 2 bits
 				   release does not indicate which button (so set to 0).
 				   Handle extended buttons like scrollwheels
-				   and side-buttons by substracting 64 in each range. */
-				for (i = 0, ch -= 32; ch >= 64; i += 3)
-					ch -= 64;
-
+				   and side-buttons by subtracting 64 in each range. */
 				release = 0;
-				button = (ch & 3) + i;
-				if (!i && button == 3) {
-					release = 1;
+				if (button == 3) {
 					button = -1;
+					release = 1;
+				} else if (button >= 128) {
+					button -= 121;
+				} else if (button >= 64) {
+					button -= 61;
 				}
+				mousereport(button, release, mask, x - 1, y - 1);
+				break;
+			case '<': /* mouse: SGR encoding */
+				for (button = 0; ; button *= 10, button += ch - '0') {
+					if ((ch = readch()) < 0)
+						goto event;
+					else if (ch == ';')
+						break;
+				}
+				for (x = 0; ; x *= 10, x += ch - '0') {
+					if ((ch = readch()) < 0)
+						goto event;
+					else if (ch == ';')
+						break;
+				}
+				for (y = 0; ; y *= 10, y += ch - '0') {
+					if ((ch = readch()) < 0)
+						goto event;
+					else if (ch == 'm' || ch == 'M')
+						break; /* release or press */
+				}
+				release = ch == 'm';
+				mask = button & (4 | 8 | 16); /* shift, meta, ctrl */
+				button &= ~mask; /* unset key mask */
 
-				/* X10 mouse-encoding */
-				if ((ch = readch()) < 0)
-					goto event;
-				x = ch;
-				if ((ch = readch()) < 0)
-					goto event;
-				y = ch;
-				mousereport(button, release, x - 33, y - 33);
+				if (button >= 128)
+					button -= 121;
+				else if (button >= 64)
+					button -= 61;
+
+				mousereport(button, release, mask, x - 1, y - 1);
 				break;
 			case 'A': goto keyup;    /* arrow up */
 			case 'B': goto keydown;  /* arrow down */
