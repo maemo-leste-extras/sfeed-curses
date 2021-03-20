@@ -586,6 +586,8 @@ cleanup(void)
 {
 	struct sigaction sa;
 
+	resettitle();
+
 	if (!needcleanup)
 		return;
 
@@ -599,8 +601,6 @@ cleanup(void)
 	/* xterm mouse-mode */
 	if (usemouse)
 		mousemode(0);
-
-	resettitle();
 
 	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
