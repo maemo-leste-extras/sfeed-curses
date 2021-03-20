@@ -636,6 +636,7 @@ void
 init(void)
 {
 	struct sigaction sa;
+	int errret = 1;
 
 	tcgetattr(0, &tsave);
 	memcpy(&tcur, &tsave, sizeof(tcur));
@@ -644,7 +645,10 @@ init(void)
 	tcur.c_cc[VTIME] = 0;
 	tcsetattr(0, TCSANOW, &tcur);
 
-	setupterm(NULL, 1, NULL);
+	if (setupterm(NULL, 1, &errret) != OK || errret != 1) {
+		errno = 0;
+		die("setupterm: terminfo database or entry for $TERM not found");
+	}
 	resizewin();
 
 	appmode(1);

@@ -1,5 +1,10 @@
 #include <sys/ioctl.h>
 
+#undef  ERR
+#define ERR (-1)
+#undef  OK
+#define OK  (0)
+
 const char *clr_eol = "\x1b[K";
 const char *clear_screen = "\x1b[H\x1b[2J";
 const char *cursor_address = "\x1b[%d;%dH";
@@ -23,13 +28,13 @@ setupterm(char *term, int fildes, int *errret)
 	struct winsize winsz;
 
 	if (ioctl(fildes, TIOCGWINSZ, &winsz) == -1)
-		return -1; /* ERR */
+		return ERR;
 	if (winsz.ws_col > 0)
 		columns = winsz.ws_col;
 	if (winsz.ws_row > 0)
 		lines = winsz.ws_row;
 
-	return 0; /* OK */
+	return OK;
 }
 
 char *
