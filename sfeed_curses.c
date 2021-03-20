@@ -654,8 +654,6 @@ init(void)
 	if (usemouse)
 		mousemode(usemouse);
 
-	updategeom();
-
 	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
@@ -686,6 +684,7 @@ processexit(pid_t pid, int interactive)
 		updatesidebar();
 		updatetitle();
 		init();
+		updategeom();
 	} else {
 		sa.sa_handler = sighandler;
 		sigaction(SIGINT, &sa, NULL);
@@ -2071,6 +2070,7 @@ main(int argc, char *argv[])
 	updatesidebar();
 	updatetitle();
 	init();
+	updategeom();
 	draw();
 
 	while (1) {
