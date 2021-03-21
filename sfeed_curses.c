@@ -624,10 +624,13 @@ void
 resizewin(void)
 {
 	struct winsize winsz;
+	int width, height;
 
-	if (ioctl(1, TIOCGWINSZ, &winsz) != -1 &&
-	    winsz.ws_col > 0 && winsz.ws_row > 0)
-		win_update(&win, winsz.ws_col, winsz.ws_row);
+	if (ioctl(1, TIOCGWINSZ, &winsz) != -1) {
+		width = winsz.ws_col > 0 ? winsz.ws_col : 80;
+		height = winsz.ws_row > 0 ? winsz.ws_row : 24;
+		win_update(&win, width, height);
+	}
 	if (win.dirty)
 		alldirty();
 }
