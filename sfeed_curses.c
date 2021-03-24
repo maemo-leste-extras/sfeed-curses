@@ -171,7 +171,7 @@ static int usemouse = 1; /* use xterm mouse tracking */
 static struct termios tsave; /* terminal state at startup */
 static struct termios tcur;
 static int devnullfd;
-static int needcleanup;
+static int istermsetup, needcleanup;
 
 static struct feed *feeds;
 static struct feed *curfeed;
@@ -487,7 +487,7 @@ printutf8pad(FILE *fp, const char *s, size_t len, int pad)
 }
 
 void
-resettitle(void)
+resetstate(void)
 {
 	ttywrite("\x1b""c"); /* rs1: reset title and state */
 }
@@ -586,29 +586,28 @@ cleanup(void)
 {
 	struct sigaction sa;
 
-	resettitle();
-
 	if (!needcleanup)
 		return;
+	needcleanup = 0;
+
+	if (istermsetup) {
+		resetstate();
+		cursormode(1);
+		appmode(0);
+		clearscreen();
+
+		if (usemouse)
+			mousemode(0);
+	}
 
 	/* restore terminal settings */
 	tcsetattr(0, TCSANOW, &tsave);
-
-	cursormode(1);
-	appmode(0);
-	clearscreen();
-
-	/* xterm mouse-mode */
-	if (usemouse)
-		mousemode(0);
 
 	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART; /* require BSD signal semantics */
 	sa.sa_handler = SIG_DFL;
 	sigaction(SIGWINCH, &sa, NULL);
-
-	needcleanup = 0;
 }
 
 void
@@ -641,6 +640,8 @@ init(void)
 	struct sigaction sa;
 	int errret = 1;
 
+	needcleanup = 1;
+
 	tcgetattr(0, &tsave);
 	memcpy(&tcur, &tsave, sizeof(tcur));
 	tcur.c_lflag &= ~(ECHO|ICANON);
@@ -648,10 +649,12 @@ init(void)
 	tcur.c_cc[VTIME] = 0;
 	tcsetattr(0, TCSANOW, &tcur);
 
-	if (setupterm(NULL, 1, &errret) != OK || errret != 1) {
+	if (!istermsetup &&
+	    (setupterm(NULL, 1, &errret) != OK || errret != 1)) {
 		errno = 0;
 		die("setupterm: terminfo database or entry for $TERM not found");
 	}
+	istermsetup = 1;
 	resizewin();
 
 	appmode(1);
@@ -668,8 +671,6 @@ init(void)
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGWINCH, &sa, NULL);
-
-	needcleanup = 1;
 }
 
 void
@@ -687,10 +688,10 @@ processexit(pid_t pid, int interactive)
 	if (interactive) {
 		while ((wpid = wait(NULL)) >= 0 && wpid != pid)
 			;
-		updatesidebar();
-		updatetitle();
 		init();
+		updatesidebar();
 		updategeom();
+		updatetitle();
 	} else {
 		sa.sa_handler = sighandler;
 		sigaction(SIGINT, &sa, NULL);
@@ -2073,10 +2074,10 @@ main(int argc, char *argv[])
 	if ((devnullfd = open("/dev/null", O_WRONLY)) == -1)
 		die("open: /dev/null");
 
-	updatesidebar();
-	updatetitle();
 	init();
+	updatesidebar();
 	updategeom();
+	updatetitle();
 	draw();
 
 	while (1) {
