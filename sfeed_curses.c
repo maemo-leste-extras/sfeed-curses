@@ -514,8 +514,8 @@ appmode(int on)
 void
 mousemode(int on)
 {
-	ttywrite(on ? "\x1b[?1000h" : "\x1b[?1000l"); /* xterm mouse mode */
-	ttywrite(on ? "\x1b[?1006h" : "\x1b[?1006l"); /* SGR mouse mode (if supported) */
+	ttywrite(on ? "\x1b[?1000h" : "\x1b[?1000l"); /* xterm X10 mouse mode */
+	ttywrite(on ? "\x1b[?1006h" : "\x1b[?1006l"); /* extended SGR mouse mode */
 }
 
 void
@@ -657,7 +657,6 @@ init(void)
 	appmode(1);
 	cursormode(0);
 
-	/* xterm mouse-mode */
 	if (usemouse)
 		mousemode(usemouse);
 
