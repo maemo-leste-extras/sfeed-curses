@@ -1667,7 +1667,7 @@ draw(void)
 }
 
 void
-mousereport(int button, int release, int mask, int x, int y)
+mousereport(int button, int release, int keymask, int x, int y)
 {
 	struct pane *p;
 	struct feed *f;
@@ -2000,7 +2000,7 @@ main(int argc, char *argv[])
 	size_t i;
 	char *name, *tmp;
 	char *search = NULL; /* search text */
-	int button, ch, fd, mask, release, x, y;
+	int button, ch, fd, keymask, release, x, y;
 	off_t off;
 
 #ifdef __OpenBSD__
@@ -2103,8 +2103,8 @@ main(int argc, char *argv[])
 					goto event;
 				y = ch - 32;
 
-				mask = button & (4 | 8 | 16); /* shift, meta, ctrl */
-				button &= ~mask; /* unset key mask */
+				keymask = button & (4 | 8 | 16); /* shift, meta, ctrl */
+				button &= ~keymask; /* unset key mask */
 
 				/* button numbers (0 - 2) encoded in lowest 2 bits
 				   release does not indicate which button (so set to 0).
@@ -2119,7 +2119,7 @@ main(int argc, char *argv[])
 				} else if (button >= 64) {
 					button -= 61;
 				}
-				mousereport(button, release, mask, x - 1, y - 1);
+				mousereport(button, release, keymask, x - 1, y - 1);
 				break;
 			case '<': /* mouse: SGR encoding */
 				for (button = 0; ; button *= 10, button += ch - '0') {
@@ -2141,15 +2141,15 @@ main(int argc, char *argv[])
 						break; /* release or press */
 				}
 				release = ch == 'm';
-				mask = button & (4 | 8 | 16); /* shift, meta, ctrl */
-				button &= ~mask; /* unset key mask */
+				keymask = button & (4 | 8 | 16); /* shift, meta, ctrl */
+				button &= ~keymask; /* unset key mask */
 
 				if (button >= 128)
 					button -= 121;
 				else if (button >= 64)
 					button -= 61;
 
-				mousereport(button, release, mask, x - 1, y - 1);
+				mousereport(button, release, keymask, x - 1, y - 1);
 				break;
 			case 'A': goto keyup;    /* arrow up */
 			case 'B': goto keydown;  /* arrow down */
