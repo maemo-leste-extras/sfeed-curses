@@ -1702,8 +1702,8 @@ mousereport(int button, int release, int keymask, int x, int y)
 			return;
 		}
 
-		/* check if mouse position is in pane */
-		if (!(x >= p->x && x < p->x + p->width &&
+		/* check if mouse position is in pane or its scrollbar */
+		if (!(x >= p->x && x < p->x + p->width + (!scrollbars[i].hidden) &&
 		      y >= p->y && y < p->y + p->height))
 			continue;
 
