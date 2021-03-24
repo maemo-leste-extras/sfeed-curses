@@ -1684,6 +1684,30 @@ mousereport(int button, int release, int keymask, int x, int y)
 		if (p->hidden || !p->width || !p->height)
 			continue;
 
+		/* these button actions are done regardless of the position */
+		switch (button) {
+		case 3: /* ctrl+scroll up */
+		case 4: /* ctrl+scroll down */
+			if ((keymask & 16))
+				adjustsidebarsize(button == 3 ? -1 : +1);
+			return;
+		case 7: /* side-button: backward */
+			if (selpane == PaneFeeds)
+				return;
+			selpane = PaneFeeds;
+			if (layout == LayoutMonocle)
+				updategeom();
+			return;
+		case 8: /* side-button: forward */
+			if (selpane == PaneItems)
+				return;
+			selpane = PaneItems;
+			if (layout == LayoutMonocle)
+				updategeom();
+			return;
+		}
+
+		/* check if mouse position is in pane */
 		if (!(x >= p->x && x < p->x + p->width &&
 		      y >= p->y && y < p->y + p->height))
 			continue;
@@ -1738,20 +1762,6 @@ mousereport(int button, int release, int keymask, int x, int y)
 		case 3: /* scroll up */
 		case 4: /* scroll down */
 			pane_scrollpage(p, button == 3 ? -1 : +1);
-			break;
-		case 7: /* side-button: backward */
-			if (selpane == PaneFeeds)
-				break;
-			selpane = PaneFeeds;
-			if (layout == LayoutMonocle)
-				updategeom();
-			break;
-		case 8: /* side-button: forward */
-			if (selpane == PaneItems)
-				break;
-			selpane = PaneItems;
-			if (layout == LayoutMonocle)
-				updategeom();
 			break;
 		}
 		return; /* do not bubble events */
