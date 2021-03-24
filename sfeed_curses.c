@@ -1686,11 +1686,6 @@ mousereport(int button, int release, int keymask, int x, int y)
 
 		/* these button actions are done regardless of the position */
 		switch (button) {
-		case 3: /* ctrl+scroll up */
-		case 4: /* ctrl+scroll down */
-			if ((keymask & 16))
-				adjustsidebarsize(button == 3 ? -1 : +1);
-			return;
 		case 7: /* side-button: backward */
 			if (selpane == PaneFeeds)
 				return;
