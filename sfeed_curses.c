@@ -2198,11 +2198,17 @@ main(int argc, char *argv[])
 			break;
 keyup:
 		case 'k':
+		case 'K':
 			pane_scrolln(&panes[selpane], -1);
+			if (ch == 'K')
+				goto openitem;
 			break;
 keydown:
 		case 'j':
+		case 'J':
 			pane_scrolln(&panes[selpane], +1);
+			if (ch == 'J')
+				goto openitem;
 			break;
 keyleft:
 		case 'h':
