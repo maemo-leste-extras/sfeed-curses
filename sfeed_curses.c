@@ -1476,6 +1476,41 @@ feeds_reloadall(void)
 	updatetitle();
 }
 
+void
+feed_open_selected(struct pane *p)
+{
+	struct feed *f;
+	struct row *row;
+
+	row = pane_row_get(p, p->pos);
+	f = (struct feed *)row->data;
+	feeds_set(f);
+	urls_read();
+	if (f->fp)
+		feed_load(f, f->fp);
+	urls_free();
+	/* redraw row: counts could be changed */
+	updatesidebar();
+	updatetitle();
+
+	if (layout == LayoutMonocle) {
+		selpane = PaneItems;
+		updategeom();
+	}
+}
+
+void
+feed_plumb_selected_item(struct pane *p)
+{
+	struct row *row;
+	struct item *item;
+
+	row = pane_row_get(p, p->pos);
+	item = (struct item *)row->data;
+	markread(p, p->pos, p->pos, 1);
+	forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
+}
+
 /* calculate optimal (default) size */
 int
 getsidebarsizedefault(void)
@@ -1670,7 +1705,6 @@ void
 mousereport(int button, int release, int keymask, int x, int y)
 {
 	struct pane *p;
-	struct feed *f;
 	struct row *row;
 	struct item *item;
 	size_t i;
@@ -1718,30 +1752,10 @@ mousereport(int button, int release, int keymask, int x, int y)
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (i == PaneFeeds) {
-				row = pane_row_get(p, p->pos);
-				f = (struct feed *)row->data;
-				feeds_set(f);
-				urls_read();
-				if (f->fp)
-					feed_load(f, f->fp);
-				urls_free();
-				/* redraw row: counts could be changed */
-				updatesidebar();
-				updatetitle();
-
-				if (layout == LayoutMonocle) {
-					selpane = PaneItems;
-					updategeom();
-				}
-			} else if (i == PaneItems) {
-				if (dblclick && !changedpane) {
-					row = pane_row_get(p, p->pos);
-					item = (struct item *)row->data;
-					markread(p, p->pos, p->pos, 1);
-					forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
-				}
-			}
+			if (i == PaneFeeds)
+				feed_open_selected(&panes[PaneFeeds]);
+			else if (i == PaneItems && dblclick && !changedpane)
+				feed_plumb_selected_item(&panes[PaneItems]);
 			break;
 		case 2: /* right-click */
 			if (!p->nrows || pos >= p->nrows)
@@ -2300,29 +2314,11 @@ nextpage:
 			break;
 		case 'o': /* feeds: load, items: plumb URL */
 		case '\n':
-			p = &panes[selpane];
-			if (selpane == PaneFeeds && panes[selpane].nrows) {
-				row = pane_row_get(p, p->pos);
-				f = (struct feed *)row->data;
-				feeds_set(f);
-				urls_read();
-				if (f->fp)
-					feed_load(f, f->fp);
-				urls_free();
-				/* redraw row: counts could be changed */
-				updatesidebar();
-				updatetitle();
-
-				if (layout == LayoutMonocle) {
-					selpane = PaneItems;
-					updategeom();
-				}
-			} else if (selpane == PaneItems && panes[selpane].nrows) {
-				row = pane_row_get(p, p->pos);
-				item = (struct item *)row->data;
-				markread(p, p->pos, p->pos, 1);
-				forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
-			}
+openitem:
+			if (selpane == PaneFeeds && panes[selpane].nrows)
+				feed_open_selected(&panes[PaneFeeds]);
+			else if (selpane == PaneItems && panes[selpane].nrows)
+				feed_plumb_selected_item(&panes[PaneItems]);
 			break;
 		case 'c': /* items: pipe TSV line to program */
 		case 'p':
