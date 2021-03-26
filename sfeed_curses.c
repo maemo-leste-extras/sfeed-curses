@@ -1922,7 +1922,8 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 			die("popen: %s", cmd);
 
 		for (i = from; i <= to; i++) {
-			row = &(p->rows[i]); /* use pane_row_get: no need for lazyload */
+			/* do not use pane_row_get: no need for lazyload */
+			row = &(p->rows[i]);
 			item = (struct item *)row->data;
 			if (item->isnew != isnew) {
 				fputs(item->matchnew, fp);
