@@ -1921,7 +1921,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		if (!(fp = popen(cmd, "w")))
 			die("popen: %s", cmd);
 
-		for (i = from; i <= to; i++) {
+		for (i = from; i <= to && i < p->nrows; i++) {
 			/* do not use pane_row_get: no need for lazyload */
 			row = &(p->rows[i]);
 			item = (struct item *)row->data;
