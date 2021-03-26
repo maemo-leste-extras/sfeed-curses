@@ -1765,7 +1765,7 @@ mousereport(int button, int release, int keymask, int x, int y)
 				row = pane_row_get(p, p->pos);
 				item = (struct item *)row->data;
 				markread(p, p->pos, p->pos, 1);
-				pipeitem(pipercmd, item, -1, 1);
+				pipeitem(pipercmd, item, -1, piperia);
 			}
 			break;
 		case 3: /* scroll up */
