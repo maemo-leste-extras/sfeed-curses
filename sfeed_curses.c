@@ -1461,19 +1461,49 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 }
 
 void
+feeds_select_feed(struct pane *p, struct feed *f)
+{
+	struct row *row;
+	struct feed *fr;
+	off_t off;
+
+	for (off = 0; off < p->nrows; off++) {
+		if (!(row = pane_row_get(p, off)))
+			continue;
+		fr = row->data;
+		if (!strcmp(fr->name, f->name))
+			break;
+	}
+	pane_setpos(p, off >= p->nrows ? 0 : off);
+}
+
+void
 feeds_reloadall(void)
 {
+	struct pane *p;
+	struct feed *f;
+	struct row *row;
 	off_t pos;
 
-	pos = panes[PaneItems].pos; /* store numeric position */
+	p = &panes[PaneFeeds];
+	if ((row = pane_row_get(p, p->pos)))
+		f = row->data;
+
+	pos = panes[PaneItems].pos; /* store numeric item position */
 	feeds_set(curfeed); /* close and reopen feed if possible */
 	urls_read();
 	feeds_load(feeds, nfeeds);
 	urls_free();
-	/* restore numeric position */
+	/* restore numeric item position */
 	pane_setpos(&panes[PaneItems], pos);
 	updatesidebar();
 	updatetitle();
+
+	/* try to find the same feed in the pane */
+	if (row && f)
+		feeds_select_feed(p, f);
+	else
+		pane_setpos(p, 0);
 }
 
 void
@@ -2315,9 +2345,18 @@ nextpage:
 			updategeom();
 			break;
 		case 't': /* toggle showing only new in sidebar */
+			p = &panes[PaneFeeds];
+			if ((row = pane_row_get(p, p->pos)))
+				f = row->data;
+
 			onlynew = !onlynew;
-			pane_setpos(&panes[PaneFeeds], 0);
 			updatesidebar();
+
+			/* try to find the same feed in the pane */
+			if (row && f && f->totalnew)
+				feeds_select_feed(p, f);
+			else
+				pane_setpos(p, 0);
 			break;
 		case 'o': /* feeds: load, items: plumb URL */
 		case '\n':
