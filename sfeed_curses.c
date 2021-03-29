@@ -1531,15 +1531,41 @@ feed_open_selected(struct pane *p)
 }
 
 void
-feed_plumb_selected_item(struct pane *p)
+feed_plumb_selected_item(struct pane *p, int field)
 {
 	struct row *row;
 	struct item *item;
 
-	row = pane_row_get(p, p->pos);
-	item = (struct item *)row->data;
+	if (!(row = pane_row_get(p, p->pos)))
+		return;
+	item = row->data;
 	markread(p, p->pos, p->pos, 1);
-	forkexec((char *[]) { plumbercmd, item->fields[FieldLink], NULL }, plumberia);
+	forkexec((char *[]) { plumbercmd, item->fields[field], NULL }, plumberia);
+}
+
+void
+feed_pipe_selected_item(struct pane *p)
+{
+	struct row *row;
+	struct item *item;
+
+	if (!(row = pane_row_get(p, p->pos)))
+		return;
+	item = row->data;
+	markread(p, p->pos, p->pos, 1);
+	pipeitem(pipercmd, item, -1, piperia);
+}
+
+void
+feed_yank_selected_item(struct pane *p, int field)
+{
+	struct row *row;
+	struct item *item;
+
+	if (!(row = pane_row_get(p, p->pos)))
+		return;
+	item = row->data;
+	pipeitem(yankercmd, item, field, yankeria);
 }
 
 /* calculate optimal (default) size */
@@ -1736,8 +1762,6 @@ void
 mousereport(int button, int release, int keymask, int x, int y)
 {
 	struct pane *p;
-	struct row *row;
-	struct item *item;
 	size_t i;
 	int changedpane, dblclick, pos;
 
@@ -1786,18 +1810,14 @@ mousereport(int button, int release, int keymask, int x, int y)
 			if (i == PaneFeeds)
 				feed_open_selected(&panes[PaneFeeds]);
 			else if (i == PaneItems && dblclick && !changedpane)
-				feed_plumb_selected_item(&panes[PaneItems]);
+				feed_plumb_selected_item(&panes[PaneItems], FieldLink);
 			break;
 		case 2: /* right-click */
 			if (!p->nrows || pos >= p->nrows)
 				break;
 			pane_setpos(p, pos);
-			if (i == PaneItems) {
-				row = pane_row_get(p, p->pos);
-				item = (struct item *)row->data;
-				markread(p, p->pos, p->pos, 1);
-				pipeitem(pipercmd, item, -1, piperia);
-			}
+			if (i == PaneItems)
+				feed_pipe_selected_item(&panes[PaneItems]);
 			break;
 		case 3: /* scroll up */
 		case 4: /* scroll down */
@@ -2047,7 +2067,6 @@ main(int argc, char *argv[])
 	struct pane *p;
 	struct feed *f;
 	struct row *row;
-	struct item *item;
 	size_t i;
 	char *name, *tmp;
 	char *search = NULL; /* search text */
@@ -2326,12 +2345,8 @@ nextpage:
 		case 'a': /* attachment */
 		case 'e': /* enclosure */
 		case '@':
-			if (selpane == PaneItems && panes[selpane].nrows) {
-				p = &panes[selpane];
-				row = pane_row_get(p, p->pos);
-				item = (struct item *)row->data;
-				forkexec((char *[]) { plumbercmd, item->fields[FieldEnclosure], NULL }, plumberia);
-			}
+			if (selpane == PaneItems)
+				feed_plumb_selected_item(&panes[selpane], FieldEnclosure);
 			break;
 		case 'm': /* toggle mouse mode */
 			usemouse = !usemouse;
@@ -2363,28 +2378,21 @@ nextpage:
 		case '\n':
 openitem:
 			if (selpane == PaneFeeds && panes[selpane].nrows)
-				feed_open_selected(&panes[PaneFeeds]);
+				feed_open_selected(&panes[selpane]);
 			else if (selpane == PaneItems && panes[selpane].nrows)
-				feed_plumb_selected_item(&panes[PaneItems]);
+				feed_plumb_selected_item(&panes[selpane], FieldLink);
 			break;
 		case 'c': /* items: pipe TSV line to program */
 		case 'p':
 		case '|':
+			if (selpane == PaneItems)
+				feed_pipe_selected_item(&panes[selpane]);
+			break;
 		case 'y': /* yank: pipe TSV field to yank URL to clipboard */
 		case 'E': /* yank: pipe TSV field to yank enclosure to clipboard */
-			if (selpane == PaneItems && panes[selpane].nrows) {
-				p = &panes[selpane];
-				row = pane_row_get(p, p->pos);
-				item = (struct item *)row->data;
-				switch (ch) {
-				case 'y': pipeitem(yankercmd, item, FieldLink, yankeria); break;
-				case 'E': pipeitem(yankercmd, item, FieldEnclosure, yankeria); break;
-				default:
-					markread(p, p->pos, p->pos, 1);
-					pipeitem(pipercmd, item, -1, piperia);
-					break;
-				}
-			}
+			if (selpane == PaneItems)
+				feed_yank_selected_item(&panes[selpane],
+				                        ch == 'y' ? FieldLink : FieldEnclosure);
 			break;
 		case 'f': /* mark all read */
 		case 'F': /* mark all unread */
