@@ -1512,8 +1512,9 @@ feed_open_selected(struct pane *p)
 	struct feed *f;
 	struct row *row;
 
-	row = pane_row_get(p, p->pos);
-	f = (struct feed *)row->data;
+	if (!(row = pane_row_get(p, p->pos)))
+		return;
+	f = row->data;
 	feeds_set(f);
 	urls_read();
 	if (f->fp)
