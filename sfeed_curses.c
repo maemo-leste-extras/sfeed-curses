@@ -1460,21 +1460,22 @@ feeds_load(struct feed *feeds, size_t nfeeds)
 	}
 }
 
-void
-feeds_select_feed(struct pane *p, struct feed *f)
+/* find row position of the feed if visible, else return -1 */
+off_t
+feeds_row_get(struct pane *p, struct feed *f)
 {
 	struct row *row;
 	struct feed *fr;
-	off_t off;
+	off_t pos;
 
-	for (off = 0; off < p->nrows; off++) {
-		if (!(row = pane_row_get(p, off)))
+	for (pos = 0; pos < p->nrows; pos++) {
+		if (!(row = pane_row_get(p, pos)))
 			continue;
 		fr = row->data;
 		if (!strcmp(fr->name, f->name))
-			break;
+			return pos;
 	}
-	pane_setpos(p, off >= p->nrows ? 0 : off);
+	return -1;
 }
 
 void
@@ -1500,8 +1501,8 @@ feeds_reloadall(void)
 	updatetitle();
 
 	/* try to find the same feed in the pane */
-	if (row && f)
-		feeds_select_feed(p, f);
+	if (row && f && (pos = feeds_row_get(p, f)) != -1)
+		pane_setpos(p, pos);
 	else
 		pane_setpos(p, 0);
 }
@@ -2071,7 +2072,7 @@ main(int argc, char *argv[])
 	char *name, *tmp;
 	char *search = NULL; /* search text */
 	int button, ch, fd, keymask, release, x, y;
-	off_t off;
+	off_t pos;
 
 #ifdef __OpenBSD__
 	if (pledge("stdio rpath tty proc exec", NULL) == -1)
@@ -2320,17 +2321,17 @@ nextpage:
 
 			if (ch == '/' || ch == 'n') {
 				/* forward */
-				for (off = p->pos + 1; off < p->nrows; off++) {
-					if (pane_row_match(p, pane_row_get(p, off), search)) {
-						pane_setpos(p, off);
+				for (pos = p->pos + 1; pos < p->nrows; pos++) {
+					if (pane_row_match(p, pane_row_get(p, pos), search)) {
+						pane_setpos(p, pos);
 						break;
 					}
 				}
 			} else {
 				/* backward */
-				for (off = p->pos - 1; off >= 0; off--) {
-					if (pane_row_match(p, pane_row_get(p, off), search)) {
-						pane_setpos(p, off);
+				for (pos = p->pos - 1; pos >= 0; pos--) {
+					if (pane_row_match(p, pane_row_get(p, pos), search)) {
+						pane_setpos(p, pos);
 						break;
 					}
 				}
@@ -2369,8 +2370,9 @@ nextpage:
 			updatesidebar();
 
 			/* try to find the same feed in the pane */
-			if (row && f && f->totalnew)
-				feeds_select_feed(p, f);
+			if (row && f && f->totalnew &&
+			    (pos = feeds_row_get(p, f)) != -1)
+				pane_setpos(p, pos);
 			else
 				pane_setpos(p, 0);
 			break;
