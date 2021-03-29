@@ -1532,7 +1532,7 @@ getsidebarsizedefault(void)
 			if (onlynew && feed->totalnew == 0)
 				continue;
 		}
-		return MIN(win.width - 1, size);
+		return MAX(MIN(win.width - 1, size), 0);
 	case LayoutHorizontal:
 		for (i = 0, size = 0; i < nfeeds; i++) {
 			feed = &feeds[i];
@@ -1540,7 +1540,7 @@ getsidebarsizedefault(void)
 				continue;
 			size++;
 		}
-		return MIN((win.height - 1) / 2, size);
+		return MAX(MIN((win.height - 1) / 2, size), 1);
 	}
 	return 0;
 }
@@ -1552,7 +1552,7 @@ getsidebarsize(void)
 
 	if ((size = fixedsidebarsizes[layout]) < 0)
 		size = getsidebarsizedefault();
-	return MAX(size, layout == LayoutHorizontal ? 1 : 0);
+	return size;
 }
 
 void
