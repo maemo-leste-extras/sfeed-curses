@@ -1324,7 +1324,7 @@ updatenewitems(struct feed *f)
 	f->totalnew = 0;
 	for (i = 0; i < p->nrows; i++) {
 		row = &(p->rows[i]); /* do not use pane_row_get */
-		item = (struct item *)row->data;
+		item = row->data;
 		if (urlfile)
 			item->isnew = urls_isnew(item->matchnew);
 		else
@@ -1723,7 +1723,7 @@ draw(void)
 
 	/* If item selection text changed then update the status text. */
 	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
-		item = (struct item *)row->data;
+		item = row->data;
 		statusbar_update(&statusbar, item->fields[FieldLink]);
 	} else {
 		statusbar_update(&statusbar, "");
@@ -1819,7 +1819,7 @@ feed_row_format(struct pane *p, struct row *row)
 	char counts[128];
 	int len, w;
 
-	feed = (struct feed *)row->data;
+	feed = row->data;
 
 	/* align counts to the right and pad remaining width with spaces */
 	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
@@ -1854,7 +1854,7 @@ feed_row_match(struct pane *p, struct row *row, const char *s)
 {
 	struct feed *feed;
 
-	feed = (struct feed *)row->data;
+	feed = row->data;
 
 	return (strcasestr(feed->name, s) != NULL);
 }
@@ -1870,7 +1870,7 @@ item_row_get(struct pane *p, off_t pos)
 	ssize_t linelen;
 
 	itemrow = p->rows + pos;
-	item = (struct item *)itemrow->data;
+	item = itemrow->data;
 
 	f = curfeed;
 	if (f && f->path && f->fp && !item->line) {
@@ -1903,7 +1903,7 @@ item_row_format(struct pane *p, struct row *row)
 	struct tm tm;
 	size_t needsize;
 
-	item = (struct item *)row->data;
+	item = row->data;
 
 	needsize = strlen(item->fields[FieldTitle]) + 21;
 	if (needsize > textsize) {
@@ -1954,7 +1954,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		for (i = from; i <= to && i < p->nrows; i++) {
 			/* do not use pane_row_get: no need for lazyload */
 			row = &(p->rows[i]);
-			item = (struct item *)row->data;
+			item = row->data;
 			if (item->isnew != isnew) {
 				fputs(item->matchnew, fp);
 				putc('\n', fp);
@@ -1974,7 +1974,7 @@ markread(struct pane *p, off_t from, off_t to, int isread)
 		visstart = p->pos - (p->pos % p->height); /* visible start */
 		for (i = from; i <= to && i < p->nrows; i++) {
 			row = &(p->rows[i]);
-			item = (struct item *)row->data;
+			item = row->data;
 			if (item->isnew == isnew)
 				continue;
 
