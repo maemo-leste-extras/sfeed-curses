@@ -1735,11 +1735,11 @@ draw(void)
 		clearscreen();
 	}
 
-	/* There is the same amount and indices of panes and scrollbars. */
 	for (i = 0; i < LEN(panes); i++) {
 		pane_setfocus(&panes[i], i == selpane);
 		pane_draw(&panes[i]);
 
+		/* each pane has a scrollbar */
 		scrollbar_setfocus(&scrollbars[i], i == selpane);
 		scrollbar_update(&scrollbars[i],
 		                 panes[i].pos - (panes[i].pos % panes[i].height),
@@ -1749,7 +1749,7 @@ draw(void)
 
 	linebar_draw(&linebar);
 
-	/* If item selection text changed then update the status text. */
+	/* if item selection text changed then update the status text */
 	if ((row = pane_row_get(&panes[PaneItems], panes[PaneItems].pos))) {
 		item = row->data;
 		statusbar_update(&statusbar, item->fields[FieldLink]);
@@ -1792,7 +1792,7 @@ mousereport(int button, int release, int keymask, int x, int y)
 			return;
 		}
 
-		/* check if mouse position is in pane or its scrollbar */
+		/* check if mouse position is in pane or in its scrollbar */
 		if (!(x >= p->x && x < p->x + p->width + (!scrollbars[i].hidden) &&
 		      y >= p->y && y < p->y + p->height))
 			continue;
@@ -1801,7 +1801,7 @@ mousereport(int button, int release, int keymask, int x, int y)
 		selpane = i;
 		/* relative position on screen */
 		pos = y - p->y + p->pos - (p->pos % p->height);
-		dblclick = (pos == p->pos); /* clicking the same row */
+		dblclick = (pos == p->pos); /* clicking the same row twice */
 
 		switch (button) {
 		case 0: /* left-click */
@@ -1843,7 +1843,7 @@ feed_row_format(struct pane *p, struct row *row)
 
 	feed = row->data;
 
-	/* align counts to the right and pad remaining width with spaces */
+	/* align counts to the right and pad the rest with spaces */
 	len = snprintf(counts, sizeof(counts), "(%lu/%lu)",
 	               feed->totalnew, feed->total);
 	if (len > p->width)
@@ -2180,7 +2180,7 @@ main(int argc, char *argv[])
 				/* button numbers (0 - 2) encoded in lowest 2 bits
 				   release does not indicate which button (so set to 0).
 				   Handle extended buttons like scrollwheels
-				   and side-buttons by subtracting 64 in each range. */
+				   and side-buttons by each range. */
 				release = 0;
 				if (button == 3) {
 					button = -1;
