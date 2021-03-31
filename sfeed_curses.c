@@ -948,8 +948,9 @@ updategeom(void)
 		linebar.y = y;
 		linebar.width = win.width;
 
-		h -= 1;
-		y += 1;
+		h--;
+		y++;
+
 		panes[PaneFeeds].width = MAX(w - 1, 0);
 		break;
 	case LayoutMonocle:
