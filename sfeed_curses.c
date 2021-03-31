@@ -976,10 +976,9 @@ updategeom(void)
 	   preventing it from overlapping with the feeds scrollbar */
 	scrollbars[PaneItems].hidden = panes[PaneItems].width ? panes[PaneItems].hidden : 1;
 
-	/* statusbar below */
 	statusbar.width = win.width;
 	statusbar.x = 0;
-	statusbar.y = panes[PaneItems].y + panes[PaneItems].height;
+	statusbar.y = MAX(win.height - 1, 0);
 
 	alldirty();
 }
