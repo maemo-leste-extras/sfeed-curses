@@ -1732,10 +1732,8 @@ draw(void)
 	struct item *item;
 	size_t i;
 
-	if (win.dirty) {
+	if (win.dirty)
 		win.dirty = 0;
-		clearscreen();
-	}
 
 	for (i = 0; i < LEN(panes); i++) {
 		pane_setfocus(&panes[i], i == selpane);
