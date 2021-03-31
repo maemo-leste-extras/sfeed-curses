@@ -959,10 +959,12 @@ updategeom(void)
 		break;
 	}
 
-	panes[PaneItems].width = MAX(w - 1, 0);
-	panes[PaneItems].height = MAX(h, 1);
 	panes[PaneItems].x = x;
 	panes[PaneItems].y = y;
+	panes[PaneItems].width = MAX(w - 1, 0);
+	panes[PaneItems].height = MAX(h, 1);
+	if (x >= win.width || y + 1 >= win.height)
+		panes[PaneItems].hidden = 1;
 
 	scrollbars[PaneFeeds].x = panes[PaneFeeds].x + panes[PaneFeeds].width;
 	scrollbars[PaneFeeds].y = panes[PaneFeeds].y;
@@ -972,9 +974,7 @@ updategeom(void)
 	scrollbars[PaneItems].x = panes[PaneItems].x + panes[PaneItems].width;
 	scrollbars[PaneItems].y = panes[PaneItems].y;
 	scrollbars[PaneItems].size = panes[PaneItems].height;
-	/* if the items don't fit on the screen then hide the scrollbar,
-	   preventing it from overlapping with the feeds scrollbar */
-	scrollbars[PaneItems].hidden = panes[PaneItems].width ? panes[PaneItems].hidden : 1;
+	scrollbars[PaneItems].hidden = panes[PaneItems].hidden;
 
 	statusbar.width = win.width;
 	statusbar.x = 0;
