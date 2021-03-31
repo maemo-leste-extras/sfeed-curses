@@ -799,7 +799,8 @@ pane_row_draw(struct pane *p, off_t pos, int selected)
 {
 	struct row *row;
 
-	if (p->hidden || !p->width || !p->height)
+	if (p->hidden || !p->width || !p->height ||
+	    p->x >= win.width || p->y + (pos % p->height) >= win.height)
 		return;
 
 	row = pane_row_get(p, pos);
@@ -1024,7 +1025,7 @@ scrollbar_draw(struct scrollbar *s)
 	if (!s->dirty)
 		return;
 	s->dirty = 0;
-	if (s->hidden || !s->size)
+	if (s->hidden || !s->size || s->x >= win.width || s->y >= win.height)
 		return;
 
 	cursorsave();
@@ -1188,7 +1189,7 @@ statusbar_draw(struct statusbar *s)
 	if (!s->dirty)
 		return;
 	s->dirty = 0;
-	if (s->hidden || !s->width)
+	if (s->hidden || !s->width || s->x >= win.width || s->y >= win.height)
 		return;
 
 	cursorsave();
