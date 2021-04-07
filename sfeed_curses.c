@@ -1483,7 +1483,7 @@ void
 feeds_reloadall(void)
 {
 	struct pane *p;
-	struct feed *f;
+	struct feed *f = NULL;
 	struct row *row;
 	off_t pos;
 
@@ -1502,7 +1502,7 @@ feeds_reloadall(void)
 	updatetitle();
 
 	/* try to find the same feed in the pane */
-	if (row && f && (pos = feeds_row_get(p, f)) != -1)
+	if (f && (pos = feeds_row_get(p, f)) != -1)
 		pane_setpos(p, pos);
 	else
 		pane_setpos(p, 0);
@@ -1644,7 +1644,7 @@ updatesidebar(void)
 	struct row *row;
 	struct feed *feed;
 	size_t i, nrows;
-	int oldvalue, newvalue;
+	int oldvalue = 0, newvalue = 0;
 
 	p = &panes[PaneFeeds];
 	if (!p->rows)
@@ -1678,18 +1678,10 @@ updatesidebar(void)
 	}
 	p->nrows = nrows;
 
-	switch (layout) {
-	case LayoutVertical:
-	case LayoutHorizontal:
-		if (oldvalue != newvalue)
-			updategeom();
-		else
-			p->dirty = 1;
-		break;
-	default:
+	if (oldvalue != newvalue)
+		updategeom();
+	else
 		p->dirty = 1;
-		break;
-	}
 
 	if (!p->nrows)
 		p->pos = 0;
