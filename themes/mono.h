@@ -7,6 +7,7 @@
 #define THEME_SCROLLBAR_NORMAL()      do { attrmode(ATTR_FAINT_ON);   } while(0)
 #define THEME_SCROLLBAR_TICK_FOCUS()  do { attrmode(ATTR_REVERSE_ON); } while(0)
 #define THEME_SCROLLBAR_TICK_NORMAL() do { attrmode(ATTR_REVERSE_ON); } while(0)
+#define THEME_LINEBAR()               do { attrmode(ATTR_FAINT_ON);   } while(0)
 #define THEME_STATUSBAR()             do { attrmode(ATTR_REVERSE_ON); } while(0)
 #define THEME_INPUT_LABEL()           do { attrmode(ATTR_REVERSE_ON); } while(0)
 #define THEME_INPUT_NORMAL()          do {                            } while(0)

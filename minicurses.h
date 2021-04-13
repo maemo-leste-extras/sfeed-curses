@@ -1,5 +1,8 @@
 #include <sys/ioctl.h>
 
+#undef  OK
+#define OK  (0)
+
 const char *clr_eol = "\x1b[K";
 const char *clear_screen = "\x1b[H\x1b[2J";
 const char *cursor_address = "\x1b[%d;%dH";
@@ -15,21 +18,10 @@ const char *enter_bold_mode = "\x1b[1m";
 const char *enter_dim_mode = "\x1b[2m";
 const char *enter_reverse_mode = "\x1b[7m";
 
-int columns = 80, lines = 24;
-
 int
 setupterm(char *term, int fildes, int *errret)
 {
-	struct winsize winsz;
-
-	if (ioctl(fildes, TIOCGWINSZ, &winsz) == -1)
-		return -1; /* ERR */
-	if (winsz.ws_col > 0)
-		columns = winsz.ws_col;
-	if (winsz.ws_row > 0)
-		lines = winsz.ws_row;
-
-	return 0; /* OK */
+	return OK;
 }
 
 char *

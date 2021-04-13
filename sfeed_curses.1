@@ -1,4 +1,4 @@
-.Dd December 18, 2020
+.Dd March 25, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -49,10 +49,14 @@ and
 Go one row up.
 .It j, ARROW DOWN
 Go one row down.
+.It K
+Go one row up and open the item.
+.It J
+Go one row down and open the item.
 .It h, ARROW LEFT
-Focus pane to the left (feeds).
+Focus feeds pane.
 .It l, ARROW RIGHT
-Focus pane to the right (items).
+Focus items pane.
 .It TAB
 Cycle focused pane (between feeds and items).
 .It g
@@ -77,14 +81,22 @@ Redraw screen.
 Reload all feed files which were specified as arguments on startup.
 .It m
 Toggle mouse-mode.
+It supports xterm X10 and extended SGR encoding.
 .It s
-Toggle showing the feeds pane sidebar.
+Toggle between monocle layout and the previous non-monocle layout.
 .It <
-Use fixed sidebar width and decrease fixed width by 1 column.
+Use a fixed sidebar size for the current layout and decrease the fixed width or
+height by 1 column.
 .It >
-Use fixed sidebar width and increase fixed width by 1 column.
+Use a fixed sidebar size for the current layout and increase the fixed width or
+height by 1 column.
 .It =
-Reset sidebar width to automatic adjustment.
+Reset the sidebar size to automaticly adjust for the current layout.
+With the vertical layout the width is the longest feedname with the item counts
+right-aligned.
+With the horizontal layout the height is half of the window height (minus the
+statusbar) or otherwise the total amount of visible feeds, whichever fits the
+best.
 .It t
 Toggle showing only feeds with new items in the sidebar.
 .It a, e, @
@@ -93,6 +105,8 @@ The URL is passed as a parameter to the program specified in
 .Ev SFEED_PLUMBER .
 .It o, ENTER, RETURN
 Feeds pane: load feed and its items.
+In the monocle layout it will also switch to the items pane after loading the
+feed items.
 Items pane: plumb current item URL, the URL is passed as a parameter to
 the program specified in
 .Ev SFEED_PLUMBER .
@@ -128,6 +142,15 @@ Mark all items of the current loaded feed as unread.
 This will only work when
 .Ev SFEED_URL_FILE
 is set.
+.It 1
+Set the current layout to a vertical mode.
+Showing a feeds sidebar to the left and the feed items to the right.
+.It 2
+Set the current layout to a horizontal mode.
+Showing a feeds sidebar on the top and the feed items on the bottom.
+.It 3
+Set the current layout to a monocle mode.
+Showing either a feeds or an feed items pane.
 .It q, EOF
 Quit
 .El
@@ -136,6 +159,8 @@ When mouse-mode is enabled the below actions are available.
 .Bl -tag -width Ds
 .It LEFT-CLICK
 Feeds pane: select and load the feed and its items.
+In the monocle layout it will also switch to the items pane after loading the
+feed items.
 Items pane: select item, when already selected then plumb it.
 .It RIGHT-CLICK
 Feeds pane: select feed, but do not load it.
@@ -144,6 +169,10 @@ Items pane: pipe the item.
 Scroll one page up.
 .It SCROLL DOWN
 Scroll one page down.
+.It FORWARD
+Switch to the items pane.
+.It BACKWARD
+Switch to the feeds pane.
 .El
 .Sh SIGNALS
 .Bl -tag -width Ds
@@ -156,6 +185,10 @@ Resize the pane dimensions relative to the terminal size.
 .El
 .Sh ENVIRONMENT VARIABLES
 .Bl -tag -width Ds
+.It Ev SFEED_AUTOCMD
+Read and process a sequence of keys as input commands from this environment
+variable first, afterwards read from stdin as usual.
+This can be useful to automate certain actions at the start.
 .It Ev SFEED_PIPER
 A program where the whole TAB-Separated Value line is piped to.
 By default this is "sfeed_content".
@@ -200,14 +233,16 @@ This URL is matched on the link field as specified in
 A program to mark items as read if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread read".
-The marked items are piped to the program.
+The marked items are piped to the program line by line.
+If the feed item has a link then this line is the link, otherwise it is the ID.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_MARK_UNREAD
 A program to mark items as unread if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread unread".
-The marked items are piped to the program.
+The unmarked items are piped to the program line by line.
+If the feed item has a link then this line is the link, otherwise it is the ID.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_LAZYLOAD
