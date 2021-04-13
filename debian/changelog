@@ -1,3 +1,9 @@
+sfeed-curses (0.9.10+leste-1) unstable; urgency=medium
+
+  * Merge branch 'master' into maemo/beowulf
+
+ -- Ivan J. <parazyd@dyne.org>  Tue, 13 Apr 2021 08:38:23 +0200
+
 sfeed-curses (0.9.8+leste-1) unstable; urgency=medium
 
   * Initial Leste packaging.
