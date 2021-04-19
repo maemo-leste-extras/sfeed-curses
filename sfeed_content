@@ -43,10 +43,12 @@ BEGIN {
 		print "Link:      " $3;
 	if (length($8))
 		print "Enclosure: " $8;
+	if (!length($4))
+		next;
 	print "";
 	if ($5 == "plain") {
 		print unescape($4);
-	} else {
+	} else if ($5 == "html") {
 		print unescape($4) | htmlconv;
 		close(htmlconv);
 	}
