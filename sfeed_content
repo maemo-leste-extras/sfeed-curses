@@ -46,11 +46,11 @@ BEGIN {
 	if (!length($4))
 		next;
 	print "";
-	if ($5 == "plain") {
-		print unescape($4);
-	} else if ($5 == "html") {
+	if ($5 == "html") {
 		print unescape($4) | htmlconv;
 		close(htmlconv);
+	} else {
+		print unescape($4);
 	}
 }' | \
 ${PAGER:-less -R}
