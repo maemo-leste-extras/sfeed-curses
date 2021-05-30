@@ -2293,6 +2293,11 @@ nextpage:
 		case 6: /* ^F */
 			pane_scrollpage(&panes[selpane], +1);
 			break;
+		case '[':
+		case ']':
+			pane_scrolln(&panes[PaneFeeds], ch == '[' ? -1 : +1);
+			feed_open_selected(&panes[PaneFeeds]);
+			break;
 		case '/': /* new search (forward) */
 		case '?': /* new search (backward) */
 		case 'n': /* search again (forward) */
