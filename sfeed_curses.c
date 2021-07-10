@@ -1262,7 +1262,7 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 	struct item *item, *items = NULL;
 	char *line = NULL;
 	size_t cap, i, linesize = 0, nitems;
-	ssize_t linelen;
+	ssize_t linelen, n;
 	off_t offset;
 	int ret = -1;
 
@@ -1273,7 +1273,7 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 			cap = cap ? cap * 2 : 16;
 			items = erealloc(items, cap * sizeof(struct item));
 		}
-		if ((linelen = getline(&line, &linesize, fp)) > 0) {
+		if ((n = linelen = getline(&line, &linesize, fp)) > 0) {
 			item = &items[i];
 
 			item->offset = offset;
@@ -1296,7 +1296,7 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 		}
 		if (ferror(fp))
 			goto err;
-		if (linelen <= 0 || feof(fp))
+		if (n <= 0 || feof(fp))
 			break;
 	}
 	ret = 0;
