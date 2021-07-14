@@ -2035,8 +2035,10 @@ urls_read(void)
 
 	urls_free();
 
-	if (!urlfile || !(fp = fopen(urlfile, "rb")))
+	if (!urlfile)
 		return;
+	if (!(fp = fopen(urlfile, "rb")))
+		die("fopen: %s", urlfile);
 
 	while ((n = getline(&line, &linesiz, fp)) > 0) {
 		if (line[n - 1] == '\n')
