@@ -1882,10 +1882,12 @@ item_row_get(struct pane *p, off_t pos)
 	if (f && f->path && f->fp && !item->line) {
 		if (fseek(f->fp, item->offset, SEEK_SET))
 			die("fseek: %s", f->path);
-		linelen = getline(&line, &linesize, f->fp);
 
-		if (linelen <= 0)
+		if ((linelen = getline(&line, &linesize, f->fp)) <= 0) {
+			if (ferror(f->fp))
+				die("getline: %s", f->path);
 			return NULL;
+		}
 
 		if (line[linelen - 1] == '\n')
 			line[--linelen] = '\0';
