@@ -2044,6 +2044,8 @@ urls_read(void)
 		}
 		urls[nurls++] = estrdup(line);
 	}
+	if (ferror(fp))
+		die("getline: %s", urlfile);
 	fclose(fp);
 	free(line);
 
