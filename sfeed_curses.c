@@ -565,7 +565,7 @@ attrmode(int mode)
 		ttywrite(tparm(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	default:
-		return;
+		break;
 	}
 }
 
@@ -1302,8 +1302,6 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 	itemsret->items = items;
 	itemsret->len = nitems;
 	free(line);
-
-	return;
 }
 
 void
