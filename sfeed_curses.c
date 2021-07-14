@@ -1256,7 +1256,7 @@ feed_items_free(struct items *items)
 	items->cap = 0;
 }
 
-int
+void
 feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 {
 	struct item *item, *items = NULL;
@@ -1264,7 +1264,6 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 	size_t cap, i, linesize = 0, nitems;
 	ssize_t linelen, n;
 	off_t offset;
-	int ret = -1;
 
 	cap = nitems = 0;
 	offset = 0;
@@ -1295,22 +1294,16 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 			nitems++;
 		}
 		if (ferror(fp))
-			goto err;
+			die("getline: %s", f->name);
 		if (n <= 0 || feof(fp))
 			break;
 	}
-	ret = 0;
-
-err:
 	itemsret->cap = cap;
 	itemsret->items = items;
 	itemsret->len = nitems;
 	free(line);
 
-	if (ret)
-		feed_items_free(itemsret);
-
-	return ret;
+	return;
 }
 
 void
@@ -1345,9 +1338,7 @@ feed_load(struct feed *f, FILE *fp)
 	size_t i;
 
 	feed_items_free(&items);
-	if (feed_items_get(f, fp, &items) == -1)
-		die("%s: %s", __func__, f->name);
-
+	feed_items_get(f, fp, &items);
 	p = &panes[PaneItems];
 	p->pos = 0;
 	p->nrows = items.len;
