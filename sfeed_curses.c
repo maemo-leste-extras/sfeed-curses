@@ -1376,6 +1376,8 @@ feed_count(struct feed *f, FILE *fp)
 		}
 		f->total++;
 	}
+	if (ferror(fp))
+		die("getline: %s", f->name);
 	free(line);
 }
 
