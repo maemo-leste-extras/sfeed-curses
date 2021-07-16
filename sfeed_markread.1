@@ -1,4 +1,4 @@
-.Dd July 7, 2021
+.Dd July 16, 2021
 .Dt SFEED_MARKREAD 1
 .Os
 .Sh NAME
@@ -9,8 +9,11 @@
 .Ar read | Ar unread
 .Sh DESCRIPTION
 .Nm
-expects to receive a plain-text list with one or more URLs from stdin.
-The received format from stdin is one URL per line.
+reads a plain-text list of URLs from stdin.
+The file format for the list of URLs is one URL per line.
+.Nm
+will write to the file specified in the environment variable
+.Ev SFEED_URL_FILE .
 .Sh ENVIRONMENT VARIABLES
 .Bl -tag -width Ds
 .It Ev SFEED_URL_FILE
