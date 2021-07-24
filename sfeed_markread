@@ -1,14 +1,22 @@
 #!/bin/sh
 # Mark items as read/unread: the input is the read / unread URL per line.
 
-if test -z "$SFEED_URL_FILE"; then
-	echo "\$SFEED_URL_FILE must be set" >&2
+usage() {
+	echo "usage: $0 <read|unread> [urlfile]" >&2
 	exit 1
+}
+
+urlfile="${2:-${SFEED_URL_FILE}}"
+if test -z "${urlfile}"; then
+	echo "An urlfile must be set as a parameter or with the environment variable \$SFEED_URL_FILE" >&2
+	echo "" >&2
+	usage
 fi
 
 case "$1" in
 read)
-	cat >> "$SFEED_URL_FILE";;
+	cat >> "${urlfile}"
+	;;
 unread)
 	tmp=$(mktemp)
 	trap "rm -f ${tmp}" EXIT
@@ -22,7 +30,6 @@ unread)
 		cp "${tmp}" "${urlfile}"
 	;;
 *)
-	echo "$0 <read|unread>" >&2
-	exit 1
+	usage
 	;;
 esac
