@@ -1,6 +1,5 @@
 #!/bin/sh
-# usage: $0 <read|unread>
-# input is the read / unread url per line.
+# Mark items as read/unread: the input is the read / unread URL per line.
 
 if test -z "$SFEED_URL_FILE"; then
 	echo "\$SFEED_URL_FILE must be set" >&2

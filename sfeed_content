@@ -1,9 +1,5 @@
 #!/bin/sh
-# RSS/Atom content viewer for sfeed(5) lines.
-#
-# Dependencies:
-# - awk, sh, less or an other pager.
-# - lynx (or an other tool) for converting HTML to plain-text.
+# Content viewer for sfeed(5) lines.
 
 awk -F '\t' '
 function unescape(s) {
