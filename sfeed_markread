@@ -26,7 +26,7 @@ unread)
 	FILENR == 1 { urls[$0] = 1 }
 	FILENR == 2 { if (!urls[$0]) { print $0 } }
 	END { exit(FILENR != 2) }' \
-		"/dev/stdin" "${urlfile}" > "${tmp}" && \
+		"-" "${urlfile}" > "${tmp}" && \
 		cp "${tmp}" "${urlfile}"
 	;;
 *)
