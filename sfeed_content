@@ -48,5 +48,5 @@ BEGIN {
 	} else {
 		print unescape($4);
 	}
-}' | \
+}' "$@" | \
 ${PAGER:-less -R}
