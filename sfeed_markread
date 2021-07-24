@@ -11,7 +11,8 @@ read)
 	cat >> "$SFEED_URL_FILE";;
 unread)
 	tmp=$(mktemp)
-	trap "rm -f $tmp" EXIT
+	trap "rm -f ${tmp}" EXIT
+	test -f "${urlfile}" || touch "${urlfile}" 2>/dev/null
 	LC_CTYPE=C awk -F '\t' '
 	{ FILENR += (FNR == 1)	}
 	FILENR == 1 { urls[$0] = 1 }
