@@ -2358,12 +2358,14 @@ nextpage:
 			p = &panes[PaneFeeds];
 			if ((row = pane_row_get(p, p->pos)))
 				f = row->data;
+			else
+				f = NULL;
 
 			onlynew = !onlynew;
 			updatesidebar();
 
 			/* try to find the same feed in the pane */
-			if (row && f && f->totalnew &&
+			if (f && f->totalnew &&
 			    (pos = feeds_row_get(p, f)) != -1)
 				pane_setpos(p, pos);
 			else
