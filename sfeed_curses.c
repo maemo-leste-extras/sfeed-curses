@@ -272,6 +272,16 @@ estrdup(const char *s)
 	return p;
 }
 
+/* wrapper for tparm which allows NULL parameter for str. */
+char *
+tparmnull(const char *str, long p1, long p2, long p3, long p4, long p5,
+          long p6, long p7, long p8, long p9)
+{
+	if (!str)
+		return NULL;
+	return tparm(str, p1, p2, p3, p4, p5, p6, p7, p8, p9);
+}
+
 /* strcasestr() included for portability */
 #undef strcasestr
 char *
@@ -508,7 +518,7 @@ updatetitle(void)
 void
 appmode(int on)
 {
-	ttywrite(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -521,13 +531,13 @@ mousemode(int on)
 void
 cursormode(int on)
 {
-	ttywrite(tparm(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursormove(int x, int y)
 {
-	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -535,7 +545,7 @@ cursorsave(void)
 {
 	/* do not save the cursor if it won't be restored anyway */
 	if (cursor_invisible)
-		ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -543,7 +553,7 @@ cursorrestore(void)
 {
 	/* if the cursor cannot be hidden then move to a consistent position */
 	if (cursor_invisible)
-		ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	else
 		cursormove(0, 0);
 }
@@ -553,16 +563,16 @@ attrmode(int mode)
 {
 	switch (mode) {
 	case ATTR_RESET:
-		ttywrite(tparm(exit_attribute_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(exit_attribute_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_BOLD_ON:
-		ttywrite(tparm(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_FAINT_ON:
-		ttywrite(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_REVERSE_ON:
-		ttywrite(tparm(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	default:
 		break;
@@ -572,13 +582,13 @@ attrmode(int mode)
 void
 cleareol(void)
 {
-	ttywrite(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 clearscreen(void)
 {
-	ttywrite(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
