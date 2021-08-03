@@ -1,36 +1,35 @@
-.Dd July 24, 2021
+.Dd August 3, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
 .Nm sfeed_curses
-.Nd curses UI for viewing feed items
+.Nd curses UI for viewing feed data
 .Sh SYNOPSIS
 .Nm
 .Op Ar
 .Sh DESCRIPTION
 .Nm
-shows the feed data which is in the
-.Xr sfeed 5
-format into a UI.
-.Pp
-.Nm
-can read this feed data from stdin or one or more
-.Ar files .
-If no
-.Ar files
-are specified then the data is read from stdin and the feed name is "stdin".
-No sidebar is visible by default in this case.
+formats feed data (TSV) from
+.Xr sfeed 1
+from stdin or for each
+.Ar file
+into a curses UI.
 If one or more
-.Ar files
-are specified, the basename of the
+.Ar file
+arguments are specified then the basename of the
 .Ar file
 is used as the feed name in the output such as the feeds sidebar.
 The
-.Ar files
-are processed and shown in the specified argument order in the feeds sidebar.
+.Ar file
+arguments are processed and shown in the specified argument order in the feeds
+sidebar.
+If no
+.Ar file
+arguments are specified then the data is read from stdin and the feed name is
+"stdin" and no sidebar is visible by default in this case.
 .Pp
 Items with a timestamp from the last day compared to the system time at the
-time of loading the feed are automatically marked as new and bold.
+time of loading the feed are marked as new and bold.
 There is also an alternative mode available to mark items as read by matching
 it against a list of URLs from a plain-text file.
 .Pp
@@ -96,8 +95,8 @@ Use a fixed sidebar size for the current layout and increase the fixed width or
 height by 1 column.
 .It =
 Reset the sidebar size to automaticly adjust for the current layout.
-With the vertical layout the width is the longest feedname with the item counts
-right-aligned.
+With the vertical layout the width is the longest feed name with the item
+counts right-aligned.
 With the horizontal layout the height is half of the window height (minus the
 statusbar) or otherwise the total amount of visible feeds, whichever fits the
 best.
@@ -231,14 +230,15 @@ If this variable is set then a different mode is used to mark items as read,
 instead of checking the timestamp, which is the default.
 The value specified is a plain-text file containing a list of read URLs, one
 URL per line.
-This URL is matched on the link field as specified in
-.Xr sfeed 5 .
+This URL is matched on the link field if it is set, otherwise it is matched on
+the id field.
 .It Ev SFEED_MARK_READ
 A program to mark items as read if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread read".
 The marked items are piped to the program line by line.
-If the feed item has a link then this line is the link, otherwise it is the ID.
+If the feed item has a link then this line is the link field, otherwise it is
+the id field.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_MARK_UNREAD
@@ -246,7 +246,8 @@ A program to mark items as unread if
 .Ev SFEED_URL_FILE
 is also set, if unset the default program used is "sfeed_markread unread".
 The unmarked items are piped to the program line by line.
-If the feed item has a link then this line is the link, otherwise it is the ID.
+If the feed item has a link then this line is the link field, otherwise it is
+the id field.
 The program is expected to merge items in a safe/transactional manner.
 The program should return the exit status 0 on success or non-zero on failure.
 .It Ev SFEED_LAZYLOAD
