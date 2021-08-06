@@ -35,7 +35,7 @@ specified by setting the environment variable $SFEED_URL_FILE to the URL file:
 
 	SFEED_URL_FILE=~/.sfeed/urls sfeed_curses ~/.sfeed/feeds/*
 
-There is an shellscript "sfeed_markread" to process the read and unread items.
+There is a shellscript "sfeed_markread" to process the read and unread items.
 See the man page for more detailed information.
 
 
