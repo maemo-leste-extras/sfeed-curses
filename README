@@ -33,7 +33,9 @@ read/unread items in a different way a plain-text file with a list of the read
 URLs can be used. To enable this behaviour the path to this file can be
 specified by setting the environment variable $SFEED_URL_FILE to the URL file:
 
-	SFEED_URL_FILE=~/.sfeed/urls sfeed_curses ~/.sfeed/feeds/*
+	export SFEED_URL_FILE="$HOME/.sfeed/urls"
+	[ -f "$SFEED_URL_FILE" ] || touch "$SFEED_URL_FILE"
+	sfeed_curses ~/.sfeed/feeds/*
 
 There is a shellscript "sfeed_markread" to process the read and unread items.
 See the man page for more detailed information.

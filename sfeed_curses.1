@@ -1,4 +1,4 @@
-.Dd August 3, 2021
+.Dd August 6, 2021
 .Dt SFEED_CURSES 1
 .Os
 .Sh NAME
@@ -276,6 +276,36 @@ It can be used by the plumb or pipe program for scripting purposes.
 .Bd -literal
 sfeed_curses ~/.sfeed/feeds/*
 .Ed
+.Pp
+Another example which shows some features
+.Nm
+has:
+.Bd -literal
+export SFEED_AUTOCMD="2tgo"
+export SFEED_URL_FILE="$HOME/.sfeed/urls"
+[ -f "$SFEED_URL_FILE" ] || touch "$SFEED_URL_FILE"
+sfeed_curses ~/.sfeed/feeds/*
+.Ed
+.Pp
+Which does the following:
+.Bl -enum
+.It
+Set the current layout to a horizontal mode ('2' keybind').
+Showing a feeds sidebar on the top and the feed items on the bottom.
+.It
+Toggle showing only feeds with new items in the sidebar ('t' keybind).
+.It
+Go to the first row in the current panel ('g' keybind).
+.It
+Load the current selected feed ('o' keybind').
+.It
+Set a plain-text file to manage read and unread items.
+.It
+Check if this file exists, if it doesn't exist yet then create it.
+.It
+Open
+.Nm .
+.El
 .Sh SEE ALSO
 .Xr sfeed 1 ,
 .Xr sfeed_content 1 ,
