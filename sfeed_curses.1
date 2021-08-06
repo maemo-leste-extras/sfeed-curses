@@ -277,7 +277,7 @@ It can be used by the plumb or pipe program for scripting purposes.
 sfeed_curses ~/.sfeed/feeds/*
 .Ed
 .Pp
-Another example which shows some features
+Another example which shows some of the features
 .Nm
 has:
 .Bd -literal
@@ -299,11 +299,14 @@ Go to the first row in the current panel ('g' keybind).
 .It
 Load the current selected feed ('o' keybind').
 .It
-Set a plain-text file to manage read and unread items.
+Set a file to use for managing read and unread items.
+This file is a plain-text file containing a list of read URLs, one URL per
+line.
 .It
-Check if this file exists, if it doesn't exist yet then create it.
+Check if this file for managing the read and unread items exists.
+If it doesn't exist yet then create an empty file.
 .It
-Open
+Start
 .Nm .
 .El
 .Sh SEE ALSO
