@@ -5,7 +5,7 @@
 
 const char *clr_eol = "\x1b[K";
 const char *clear_screen = "\x1b[H\x1b[2J";
-const char *cursor_address = "\x1b[%d;%dH";
+const char *cursor_address = "\x1b[%ld;%ldH";
 const char *cursor_normal = "\x1b[?25h"; /* DECTCEM (in)Visible cursor */
 const char *cursor_invisible = "\x1b[?25l"; /* DECTCEM (in)Visible cursor */
 const char *eat_newline_glitch = (void *)1;
@@ -25,7 +25,7 @@ setupterm(char *term, int fildes, int *errret)
 }
 
 char *
-tparm(const char *s, int p1, int p2, ...)
+tparm(const char *s, long p1, long p2, ...)
 {
 	static char buf[32];
 

@@ -1,9 +1,5 @@
 #!/bin/sh
-# RSS/Atom content viewer for sfeed(5) lines.
-#
-# Dependencies:
-# - awk, sh, less or an other pager.
-# - lynx (or an other tool) for converting HTML to plain-text.
+# Content viewer for sfeed(5) lines.
 
 awk -F '\t' '
 function unescape(s) {
@@ -43,12 +39,14 @@ BEGIN {
 		print "Link:      " $3;
 	if (length($8))
 		print "Enclosure: " $8;
+	if (!length($4))
+		next;
 	print "";
-	if ($5 == "plain") {
-		print unescape($4);
-	} else {
+	if ($5 == "html") {
 		print unescape($4) | htmlconv;
 		close(htmlconv);
+	} else {
+		print unescape($4);
 	}
-}' | \
+}' "$@" | \
 ${PAGER:-less -R}

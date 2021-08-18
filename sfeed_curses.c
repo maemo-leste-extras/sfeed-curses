@@ -272,6 +272,16 @@ estrdup(const char *s)
 	return p;
 }
 
+/* wrapper for tparm which allows NULL parameter for str. */
+char *
+tparmnull(const char *str, long p1, long p2, long p3, long p4, long p5,
+          long p6, long p7, long p8, long p9)
+{
+	if (!str)
+		return NULL;
+	return tparm(str, p1, p2, p3, p4, p5, p6, p7, p8, p9);
+}
+
 /* strcasestr() included for portability */
 #undef strcasestr
 char *
@@ -508,7 +518,7 @@ updatetitle(void)
 void
 appmode(int on)
 {
-	ttywrite(tparm(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(on ? enter_ca_mode : exit_ca_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -521,13 +531,13 @@ mousemode(int on)
 void
 cursormode(int on)
 {
-	ttywrite(tparm(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(on ? cursor_normal : cursor_invisible, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 cursormove(int x, int y)
 {
-	ttywrite(tparm(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(cursor_address, y, x, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -535,7 +545,7 @@ cursorsave(void)
 {
 	/* do not save the cursor if it won't be restored anyway */
 	if (cursor_invisible)
-		ttywrite(tparm(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(save_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -543,7 +553,7 @@ cursorrestore(void)
 {
 	/* if the cursor cannot be hidden then move to a consistent position */
 	if (cursor_invisible)
-		ttywrite(tparm(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(restore_cursor, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	else
 		cursormove(0, 0);
 }
@@ -553,32 +563,32 @@ attrmode(int mode)
 {
 	switch (mode) {
 	case ATTR_RESET:
-		ttywrite(tparm(exit_attribute_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(exit_attribute_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_BOLD_ON:
-		ttywrite(tparm(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_bold_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_FAINT_ON:
-		ttywrite(tparm(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_dim_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	case ATTR_REVERSE_ON:
-		ttywrite(tparm(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+		ttywrite(tparmnull(enter_reverse_mode, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 		break;
 	default:
-		return;
+		break;
 	}
 }
 
 void
 cleareol(void)
 {
-	ttywrite(tparm(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(clr_eol, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
 clearscreen(void)
 {
-	ttywrite(tparm(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+	ttywrite(tparmnull(clear_screen, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 }
 
 void
@@ -1256,15 +1266,14 @@ feed_items_free(struct items *items)
 	items->cap = 0;
 }
 
-int
+void
 feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 {
 	struct item *item, *items = NULL;
 	char *line = NULL;
 	size_t cap, i, linesize = 0, nitems;
-	ssize_t linelen;
+	ssize_t linelen, n;
 	off_t offset;
-	int ret = -1;
 
 	cap = nitems = 0;
 	offset = 0;
@@ -1273,7 +1282,7 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 			cap = cap ? cap * 2 : 16;
 			items = erealloc(items, cap * sizeof(struct item));
 		}
-		if ((linelen = getline(&line, &linesize, fp)) > 0) {
+		if ((n = linelen = getline(&line, &linesize, fp)) > 0) {
 			item = &items[i];
 
 			item->offset = offset;
@@ -1295,22 +1304,14 @@ feed_items_get(struct feed *f, FILE *fp, struct items *itemsret)
 			nitems++;
 		}
 		if (ferror(fp))
-			goto err;
-		if (linelen <= 0 || feof(fp))
+			die("getline: %s", f->name);
+		if (n <= 0 || feof(fp))
 			break;
 	}
-	ret = 0;
-
-err:
 	itemsret->cap = cap;
 	itemsret->items = items;
 	itemsret->len = nitems;
 	free(line);
-
-	if (ret)
-		feed_items_free(itemsret);
-
-	return ret;
 }
 
 void
@@ -1345,9 +1346,7 @@ feed_load(struct feed *f, FILE *fp)
 	size_t i;
 
 	feed_items_free(&items);
-	if (feed_items_get(f, fp, &items) == -1)
-		die("%s: %s", __func__, f->name);
-
+	feed_items_get(f, fp, &items);
 	p = &panes[PaneItems];
 	p->pos = 0;
 	p->nrows = items.len;
@@ -1385,6 +1384,8 @@ feed_count(struct feed *f, FILE *fp)
 		}
 		f->total++;
 	}
+	if (ferror(fp))
+		die("getline: %s", f->name);
 	free(line);
 }
 
@@ -1889,10 +1890,12 @@ item_row_get(struct pane *p, off_t pos)
 	if (f && f->path && f->fp && !item->line) {
 		if (fseek(f->fp, item->offset, SEEK_SET))
 			die("fseek: %s", f->path);
-		linelen = getline(&line, &linesize, f->fp);
 
-		if (linelen <= 0)
+		if ((linelen = getline(&line, &linesize, f->fp)) <= 0) {
+			if (ferror(f->fp))
+				die("getline: %s", f->path);
 			return NULL;
+		}
 
 		if (line[linelen - 1] == '\n')
 			line[--linelen] = '\0';
@@ -2035,8 +2038,10 @@ urls_read(void)
 
 	urls_free();
 
-	if (!urlfile || !(fp = fopen(urlfile, "rb")))
+	if (!urlfile)
 		return;
+	if (!(fp = fopen(urlfile, "rb")))
+		die("fopen: %s", urlfile);
 
 	while ((n = getline(&line, &linesiz, fp)) > 0) {
 		if (line[n - 1] == '\n')
@@ -2047,6 +2052,8 @@ urls_read(void)
 		}
 		urls[nurls++] = estrdup(line);
 	}
+	if (ferror(fp))
+		die("getline: %s", urlfile);
 	fclose(fp);
 	free(line);
 
@@ -2293,6 +2300,11 @@ nextpage:
 		case 6: /* ^F */
 			pane_scrollpage(&panes[selpane], +1);
 			break;
+		case '[':
+		case ']':
+			pane_scrolln(&panes[PaneFeeds], ch == '[' ? -1 : +1);
+			feed_open_selected(&panes[PaneFeeds]);
+			break;
 		case '/': /* new search (forward) */
 		case '?': /* new search (backward) */
 		case 'n': /* search again (forward) */
@@ -2356,12 +2368,14 @@ nextpage:
 			p = &panes[PaneFeeds];
 			if ((row = pane_row_get(p, p->pos)))
 				f = row->data;
+			else
+				f = NULL;
 
 			onlynew = !onlynew;
 			updatesidebar();
 
 			/* try to find the same feed in the pane */
-			if (row && f && f->totalnew &&
+			if (f && f->totalnew &&
 			    (pos = feeds_row_get(p, f)) != -1)
 				pane_setpos(p, pos);
 			else

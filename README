@@ -6,7 +6,7 @@ sfeed_curses is a curses UI front-end for sfeed.
 It shows the TAB-separated feed items in a graphical command-line UI. The
 interface has a look inspired by the mutt mail client. It has a sidebar panel
 for the feeds, a panel with a listing of the items and a small statusbar for
-the selected item/url. Some functions like searching and scrolling are
+the selected item/URL. Some functions like searching and scrolling are
 integrated in the interface itself.
 
 
@@ -30,12 +30,14 @@ Like the format programs included in sfeed you can run it like this:
 
 By default sfeed_curses marks the items of the last day as new/bold. To manage
 read/unread items in a different way a plain-text file with a list of the read
-urls can be used. To enable this behaviour the path to this file can be
-specified by setting the environment variable $SFEED_URL_FILE to the url file:
+URLs can be used. To enable this behaviour the path to this file can be
+specified by setting the environment variable $SFEED_URL_FILE to the URL file:
 
-	SFEED_URL_FILE=~/.sfeed/urls sfeed_curses ~/.sfeed/feeds/*
+	export SFEED_URL_FILE="$HOME/.sfeed/urls"
+	[ -f "$SFEED_URL_FILE" ] || touch "$SFEED_URL_FILE"
+	sfeed_curses ~/.sfeed/feeds/*
 
-There is an shellscript "sfeed_markread" to process the read and unread items.
+There is a shellscript "sfeed_markread" to process the read and unread items.
 See the man page for more detailed information.
 
 
@@ -64,7 +66,7 @@ Run-time dependencies
 Optional run-time dependencies
 ------------------------------
 
-- xclip for yanking the url or enclosure. See $SFEED_YANKER to change it.
+- xclip for yanking the URL or enclosure. See $SFEED_YANKER to change it.
 - xdg-open, used as a plumber by default. See $SFEED_PLUMBER to change it.
 - awk, used by the sfeed_content and sfeed_markread script.
   See the ENVIRONMENT VARIABLES section in the man page to change it.
@@ -129,10 +131,10 @@ or
 
 The specified script should be in $PATH or an absolute path.
 
-Example of a `markallread.sh` shellscript to mark all urls as read:
+Example of a `markallread.sh` shellscript to mark all URLs as read:
 
 	#!/bin/sh
-	# mark all items/urls as read.
+	# mark all items/URLs as read.
 
 	tmp=$(mktemp)
 	(cat ~/.sfeed/urls; cut -f 3 ~/.sfeed/feeds/*) | \
@@ -146,10 +148,10 @@ Example of a `syncnews.sh` shellscript to update the feeds and reload them:
 	sfeed_update && pkill -SIGHUP sfeed_curses
 
 
-Open an url directly in the same terminal
+Open an URL directly in the same terminal
 -----------------------------------------
 
-To open an url directly in the same terminal using the text-mode lynx browser:
+To open an URL directly in the same terminal using the text-mode lynx browser:
 
 	SFEED_PLUMBER=lynx SFEED_PLUMBER_INTERACTIVE=1 sfeed_curses ~/.sfeed/feeds/*
 
